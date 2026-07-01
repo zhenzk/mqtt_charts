@@ -28,7 +28,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   // Content-Security-Policy (allow unsafe-eval for custom expressions)
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
-    cb({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src *"] } });
+    cb({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src *"] } });
   });
   // Toggle DevTools with F12
   mainWindow.webContents.on('before-input-event', (e, input) => {
