@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQTT Charts</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="titlebar" id="titlebar">
+    <div class="traffic-lights">
+      <button class="tl tl-close" id="btn-close" title="Close"></button>
+      <button class="tl tl-min" id="btn-min" title="Minimize"></button>
+      <button class="tl tl-max" id="btn-max" title="Maximize"></button>
+    </div>
+    <div class="titlebar-spacer"></div>
+  </div>
+  <div class="app" id="app">
+    <button id="sidebar-show" class="sidebar-show" title="Show sidebar">☰</button>
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head">
+        <div class="brand">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 17l5-8 4 5 4-7 5 5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-i18n="appTitle">MQTT Charts</span>
+        </div>
+        <div class="head-acts">
+          <button id="sidebar-hide" class="icon-btn" title="Hide sidebar">☰</button>
+          <button id="lang-toggle" class="icon-btn" title="Language">中</button>
+          <span id="status-dot" class="status-dot off"></span>
+        </div>
+      </div>
+
+      <div class="nav-sec" id="panel-connection" data-panel="connection">
+        <div class="nav-head" onclick="togglePanel(this)">
+          <span data-i18n="connection">Connection</span>
+          <svg class="chev" viewBox="0 0 24 24" width="13" height="13"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div class="nav-body" id="panel-connection-body">
+          <div class="field">
+            <label data-i18n="brokerUrl">Broker URL</label>
+            <input type="text" id="broker-url" value="mqtt://broker.hivemq.com:1883" />
+          </div>
+          <div class="field-row">
+            <div class="field flex-1"><label data-i18n="username">User</label><input type="text" id="mqtt-user" placeholder="—" /></div>
+            <div class="field flex-1"><label data-i18n="password">Pass</label><input type="password" id="mqtt-pass" placeholder="—" /></div>
+          </div>
+          <div class="field"><label data-i18n="clientId">Client ID</label><input type="text" id="mqtt-cid" placeholder="auto" /></div>
+          <div class="btn-row">
+            <button id="connect-btn" class="btn btn-primary" data-i18n="connect">Connect</button>
+            <button id="disconnect-btn" class="btn btn-ghost" disabled data-i18n="disconnect">Disconnect</button>
+          </div>
+          <button id="test-btn" class="btn btn-ghost btn-block" data-i18n="testConnection">⚡ Test Connection & Demo</button>
+          <div id="status-text" class="status-text">—</div>
+        </div>
+      </div>
+      <div class="panel-resizer" data-above="connection" data-below="charts"></div>
+
+      <div class="nav-sec nav-charts" id="panel-charts" data-panel="charts">
+        <div class="nav-head">
+          <span data-i18n="charts">Charts</span>
+          <button id="add-chart-btn" class="btn btn-mini btn-primary">+</button>
+        </div>
+        <div class="nav-body" id="panel-charts-body">
+          <div id="chart-list" class="chart-list"></div>
+          <div class="gap-ctrl">
+            <label data-i18n="spacing">Spacing</label>
+            <input type="range" id="gap-slider" min="0" max="40" value="12" />
+            <span id="gap-val">12</span>
+          </div>
+          <button id="demo-btn" class="btn btn-mini btn-ghost btn-block" data-i18n="startDemo">▶ Start Demo Data</button>
+          <button id="clear-data-btn" class="btn btn-mini btn-ghost btn-block" data-i18n="clearData">Clear Data</button>
+        </div>
+      </div>
+      <div class="panel-resizer" data-above="charts" data-below="json"></div>
+
+      <div class="nav-sec nav-json" id="panel-json" data-panel="json">
+        <div class="nav-head" onclick="togglePanel(this)">
+          <span data-i18n="jsonPreview">JSON Preview</span>
+          <svg class="chev" viewBox="0 0 24 24" width="13" height="13"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div class="nav-body" id="panel-json-body">
+          <div class="json-preview" id="json-preview">
+            <div class="json-empty" data-i18n="jsonWaiting">Waiting for messages...</div>
+    </div>
+
+    <div class="statusbar" id="statusbar">
+      <div class="sb-item"><span class="sb-dot" id="sb-dot" style="background:var(--text-4)"></span><span id="sb-conn">Disconnected</span></div>
+      <div class="sb-item"><strong id="sb-charts">0</strong> <span data-i18n="charts">Charts</span></div>
+      <div class="sb-item"><strong id="sb-points">0</strong> <span data-i18n="points">Points</span></div>
+      <div class="sb-item"><strong id="sb-rate">0</strong> msg/s</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-item"><span id="sb-mem">0 KB</span></div>
+      <div class="sb-item" style="opacity:.5">Ctrl+N: New · Ctrl+W: Close · Space: Pause</div>
+    </div>
+  </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="charts-container" class="grid"></div>
+      <div id="empty-state" class="empty">
+        <svg viewBox="0 0 96 64" width="96" height="56" class="empty-illust"><path d="M8 52l16-22 12 14 16-24 12 16 24-18" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="52" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="24" cy="30" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="36" cy="44" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="52" cy="20" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="64" cy="36" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="88" cy="18" r="2.5" fill="currentColor" opacity="0.3"/></svg>
+        <h2 data-i18n="noChartsTitle">No Charts Yet</h2>
+        <p data-i18n="noChartsDesc">Connect to MQTT, then create a chart.</p>
+        <p class="muted" data-i18n="orTest">Or click <strong>Test Connection & Demo</strong> to see it live.</p>
+      </div>
+    </main>
+
+    <div id="bi-view" class="bi-view hidden">
+      <div class="bi-head">
+        <div class="bi-h-left">
+          <button id="bi-back" class="icon-btn">←</button>
+          <div><div class="bi-title" id="bi-title">—</div><div class="bi-sub" id="bi-sub"></div></div>
+        </div>
+        <div class="bi-h-right">
+          <span class="bi-meta" id="bi-meta"></span>
+          <button id="bi-export" class="btn btn-mini btn-ghost" data-i18n="export">Export CSV</button>
+          <button id="bi-close" class="icon-btn">✕</button>
+        </div>
+      </div>
+      <div class="bi-kpis" id="bi-kpis"></div>
+      <div class="bi-chart"><canvas id="bi-canvas"></canvas></div>
+      <div class="bi-twrap"><table class="bi-table"><thead><tr><th>Field</th><th>Current</th><th>Min</th><th>Max</th><th>Avg</th><th>Count</th></tr></thead><tbody id="bi-tbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><h2 id="modal-title" data-i18n="addChart">Add Chart</h2><button id="modal-close" class="icon-btn">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label data-i18n="chartTitle">Chart Title</label><input type="text" id="chart-title" placeholder="Sensors" /></div>
+        <div class="field"><label data-i18n="mqttTopic">MQTT Topic</label><input type="text" id="chart-topic" placeholder="sensor/data" /></div>
+        <div class="field"><label data-i18n="chartMode">Mode</label><select id="chart-mode"><option value="auto" data-i18n="autoMode">Auto Multi-Line</option><option value="manual" data-i18n="manualMode">Custom Expression</option></select></div>
+        <div class="field" id="expression-group"><label data-i18n="expression">Value Expression</label><input type="text" id="chart-expression" value="data.value" /><span class="hint" data-i18n="expressionHint">Use data for the JSON</span></div>
+        <div class="field" id="fields-filter-group">
+          <label data-i18n="fieldsFilter">Fields Filter <span class="opt">(optional)</span></label>
+          <input type="text" id="chart-fields-filter" placeholder="temperature, humidity" />
+          <span class="hint" data-i18n="fieldsFilterHint">Comma-separated. Empty = show all numeric fields.</span>
+        </div>
+        <div class="field-row">
+          <div class="field flex-1"><label data-i18n="maxPoints">Max Points</label><input type="number" id="chart-maxpoints" value="10000" min="100" max="100000" /></div>
+          <div class="field flex-1"><label data-i18n="timeRange">Time Range</label><select id="chart-timerange"><option value="30s">30s</option><option value="1m">1m</option><option value="2m">2m</option><option value="5m" selected>5m</option><option value="15m">15m</option><option value="30m">30m</option><option value="1h">1h</option><option value="2h">2h</option><option value="all" data-i18n="allTime">All</option></select></div>
+        </div>
+        <div class="field" id="color-group"><label data-i18n="lineColor">Color</label><input type="color" id="chart-color" value="#4b8bf4" /></div>
+        <div class="field"><label data-i18n="yAxisLabel">Y-axis Label</label><input type="text" id="chart-ylabel" placeholder="—" /></div>
+      </div>
+      <div class="modal-foot"><button id="modal-cancel" class="btn btn-ghost" data-i18n="cancel">Cancel</button><button id="modal-save" class="btn btn-primary" data-i18n="save">Save</button></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
