@@ -14,12 +14,17 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis"
+      "target": ["nsis", "portable"],
+      "signAndEditExecutable": false,
+      "certificateSubjectName": null
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName} ${version} Portable.exe"
     }
   },
   "keywords": ["mqtt", "chart", "dashboard", "realtime", "electron"],
