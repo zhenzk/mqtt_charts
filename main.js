@@ -26,6 +26,10 @@ function createWindow() {
   });
   Menu.setApplicationMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // Toggle DevTools with F12
+  mainWindow.webContents.on('before-input-event', (e, input) => {
+    if (input.key === 'F12') mainWindow.webContents.toggleDevTools();
+  });
 }
 
 /* ─── Window controls ─── */

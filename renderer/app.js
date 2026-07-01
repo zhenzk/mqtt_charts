@@ -248,10 +248,6 @@ function renderJsonPreview(){
   el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
   }catch(e){console.warn('jsonPrev:',e)}
 }
-    }
-  }
-  el.innerHTML=`<div class="json-topic">topic: ${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
-}
 
 function onStatus(status,msg){
   S.connecting=false;$('connect-btn').disabled=false;
