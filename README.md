@@ -25,8 +25,11 @@ Real-time MQTT JSON data visualization dashboard — a desktop charting tool bui
 # 安装依赖
 npm install
 
-# 启动（Electron 开发模式）
+# 启动（开发模式，有 cmd 窗口）
 npm start
+
+# 启动（无 cmd 窗口，推荐）
+powershell -File start.ps1
 
 # 打包 Windows exe
 npm run build

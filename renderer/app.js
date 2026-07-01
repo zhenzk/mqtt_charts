@@ -76,10 +76,16 @@ function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save(
 
 /* ─── Init ─── */
 document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof Chart==='undefined'){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0b0f17;color:#ef4444;font-family:sans-serif;flex-direction:column;gap:12px"><h2>Chart.js failed to load</h2><p style="color:#94a3b8;font-size:13px">Check network connection or reload</p></div>`;return;}
   load();setupEv();applyLang();renderGrid();setupMQTT();setupPanelResizers();
   $('gap-slider').value=S.gridGap;$('gap-val').textContent=S.gridGap;applyGridGap();
   applyPanelHeights();
   setInterval(pruneAll,5000);
+  // Health check: clean orphaned data every 30s
+  setInterval(()=>{
+    for(const id in S.data) if(!S.charts.some(c=>c.id===+id)){recycleData(+id);delete S.data[id];}
+    if(ptPool.length>5000)ptPool.length=5000;
+  },30000);
 });
 
 /* ─── Sidebar panel resizers (drag to resize) ─── */
@@ -381,7 +387,7 @@ function setTimeRange(id,range){
   if(!ch)return;
   ch.timeRange=range;
   pruneData(id);
-  if(S.inst[id])S.inst[id].update('none');
+  try{if(S.inst[id])S.inst[id].update('none');}catch{}
   queueUp(id);
   save();
 }
@@ -504,9 +510,11 @@ const chartOpts=(ch,large)=>({
 });
 
 function initChart(ch,canvas){
-  const ctx=canvas.getContext('2d');
-  const data=S.data[ch.id];const fields=data?Object.keys(data.fields):[];
-  S.inst[ch.id]=new Chart(ctx,{type:'line',data:{datasets:buildDS(ch,fields,data,ctx)},options:chartOpts(ch,false)});
+  try{
+    const ctx=canvas.getContext('2d');
+    const data=S.data[ch.id];const fields=data?Object.keys(data.fields):[];
+    S.inst[ch.id]=new Chart(ctx,{type:'line',data:{datasets:buildDS(ch,fields,data,ctx)},options:chartOpts(ch,false)});
+  }catch(e){console.warn('initChart:',e.message);}
 }
 
 function buildDS(ch,fields,data,ctx){
@@ -527,15 +535,21 @@ function _upd(id){
   const inst=S.inst[id],data=S.data[id],ch=S.charts.find(c=>c.id===id);
   if(!inst||!data||!ch)return;
   const fields=Object.keys(data.fields);
-  if(ch.mode==='manual'){inst.data.datasets[0].data=data.fields._v||[];}
-  else{
-    fields.forEach((f,i)=>{
-      if(i<inst.data.datasets.length){inst.data.datasets[i].label=f;inst.data.datasets[i].data=data.fields[f]||[];}
-      else{const ci=i%PALETTE.length,c=PALETTE[ci];inst.data.datasets.push({label:f,data:data.fields[f]||[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2});}
-    });
-    while(inst.data.datasets.length>fields.length)inst.data.datasets.pop();
-  }
-  inst.update('none');updLegend(id);
+  try{
+    if(ch.mode==='manual'){
+      if(!inst.data.datasets[0]){const ds=buildDS(ch,['_v'],data);if(ds.length)inst.data.datasets.push(ds[0]);}
+      if(inst.data.datasets[0])inst.data.datasets[0].data=data.fields._v||[];
+    }else{
+      fields.forEach((f,i)=>{
+        if(i<inst.data.datasets.length){inst.data.datasets[i].label=f;inst.data.datasets[i].data=data.fields[f]||[];}
+        else{const ci=i%PALETTE.length,c=PALETTE[ci];inst.data.datasets.push({label:f,data:data.fields[f]||[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2});}
+      });
+      while(inst.data.datasets.length>Math.max(1,fields.length))inst.data.datasets.pop();
+      if(!inst.data.datasets.length){const c=PALETTE[0];inst.data.datasets.push({label:ch.title,data:[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0});}
+    }
+    inst.update('none');
+  }catch(e){console.warn('Chart:',e.message)}
+  updLegend(id);
 }
 
 function updLegend(id){
@@ -558,7 +572,7 @@ function updLegend(id){
 function toggleLine(id,dsIdx){
   const inst=S.inst[id];if(!inst||!inst.data.datasets[dsIdx])return;
   inst.data.datasets[dsIdx].hidden=!inst.data.datasets[dsIdx].hidden;
-  inst.update('none');
+  try{inst.update('none');}catch{}
   updLegend(id);
   if(S.selectedId===id)renderFieldToolbar(id);
 }
@@ -669,13 +683,15 @@ function renderBIKPI(fields,ch,data){
   $('bi-meta').textContent=`${tot} ${t('points')}${lt?' · '+t('lastUpdate')+' '+new Date(lt).toLocaleTimeString():''}`;
 }
 function renderBIChart(fields,ch,data){
-  if(S.maxInst){S.maxInst.destroy();S.maxInst=null;}
-  const cv=$('bi-canvas'),ctx=cv.getContext('2d');
-  const ds=buildDS(ch,fields,data,ctx).map(d=>({...d,borderWidth:2.8,pointRadius:1,pointHitRadius:14}));
-  const o=chartOpts(ch,true);
-  o.plugins.legend={display:true,labels:{color:'#94a3b8',font:{size:11},padding:14,usePointStyle:true,pointStyle:'circle'}};
-  o.scales.x.grid.color='rgba(255,255,255,.04)';o.scales.y.grid.color='rgba(255,255,255,.05)';
-  S.maxInst=new Chart(ctx,{type:'line',data:{datasets:ds},options:o});
+  try{
+    if(S.maxInst){S.maxInst.destroy();S.maxInst=null;}
+    const cv=$('bi-canvas'),ctx=cv.getContext('2d');
+    const ds=buildDS(ch,fields,data,ctx).map(d=>({...d,borderWidth:2.8,pointRadius:1,pointHitRadius:14}));
+    const o=chartOpts(ch,true);
+    o.plugins.legend={display:true,labels:{color:'#94a3b8',font:{size:11},padding:14,usePointStyle:true,pointStyle:'circle'}};
+    o.scales.x.grid.color='rgba(255,255,255,.04)';o.scales.y.grid.color='rgba(255,255,255,.05)';
+    S.maxInst=new Chart(ctx,{type:'line',data:{datasets:ds},options:o});
+  }catch(e){console.warn('BI Chart:',e.message);}
 }
 function renderBITable(fields,ch,data){
   $('bi-tbody').innerHTML=fields.map(f=>{
@@ -688,10 +704,12 @@ function renderBITable(fields,ch,data){
 function updBI(){
   if(S.maxId==null||!S.maxInst)return;
   const ch=S.charts.find(c=>c.id===S.maxId),data=S.data[S.maxId];if(!ch||!data)return;
-  const fields=ch.mode==='manual'?['_v']:Object.keys(data.fields);
-  S.maxInst.data.datasets=buildDS(ch,fields,data).map(d=>({...d,borderWidth:2.8,pointRadius:1}));
-  S.maxInst.update('none');
-  renderBIKPI(fields,ch,data);renderBITable(fields,ch,data);
+  try{
+    const fields=ch.mode==='manual'?['_v']:Object.keys(data.fields);
+    S.maxInst.data.datasets=buildDS(ch,fields,data).map(d=>({...d,borderWidth:2.8,pointRadius:1}));
+    S.maxInst.update('none');
+    renderBIKPI(fields,ch,data);renderBITable(fields,ch,data);
+  }catch(e){console.warn('updBI:',e.message);}
 }
 function closeBI(){S.maxId=null;$('bi-view').classList.add('hidden');if(S.maxInst){S.maxInst.destroy();S.maxInst=null;}}
 
