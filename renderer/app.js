@@ -3,7 +3,7 @@
    bezier curves · gradient fills · auto-demo · BI dashboard
    ═══════════════════════════════════════════════════════ */
 const PALETTE = ['#3b82f6','#10b981','#f59e0b','#ef4444','#a855f7','#06b6d4','#fb923c','#ec4899','#84cc16','#e879f9'];
-const STORE_KEY = 'mqtt-charts-v4';
+const STORE_KEY = 'mqtt-charts-v5';
 const DEMO_BROKER = 'mqtt://broker.hivemq.com:1883';
 const DEMO_TOPIC = 'mqtt-charts/demo';
 
@@ -21,7 +21,7 @@ const I18N = {
 };
 let lang='en';
 const t=k=>(I18N[lang]||{})[k]||k;
-function applyLang(){document.querySelectorAll('[data-i18n]').forEach(e=>{const v=t(e.dataset.i18n);if(v.includes('<'))e.innerHTML=v;else e.textContent=v;});$('lang-toggle').textContent=lang==='zh'?'EN':'中';renderList();}
+function applyLang(){try{document.querySelectorAll('[data-i18n]').forEach(e=>{const v=t(e.dataset.i18n);if(v==null)return;if(v.includes('<'))e.innerHTML=v;else e.textContent=v;});$('lang-toggle').textContent=lang==='zh'?'EN':'中';renderList();}catch(e){console.warn('lang:',e)}}
 
 /* ─── State ─── */
 const S={connected:false,connecting:false,charts:[],data:{},inst:{},maxId:null,maxInst:null,nextId:1,editId:null,demoOn:false,lastJson:null,jsonCount:0,selectedId:null,lastPayloadByTopic:{},selectedJsonTopic:null,gridGap:12,panelH:{connection:null,charts:null,json:null},msgRate:0,msgRateTimer:0,totalPoints:0};
@@ -75,17 +75,19 @@ function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap
 function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
 
 /* ─── Init ─── */
+window.onerror=(m,s,l,c,e)=>{console.error('GLOBAL:',m,e);try{toast('Error: '+m,'error',5000)}catch{}};
 document.addEventListener('DOMContentLoaded',()=>{
+  try{
   if(typeof Chart==='undefined'){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0b0f17;color:#ef4444;font-family:sans-serif;flex-direction:column;gap:12px"><h2>Chart.js failed to load</h2><p style="color:#94a3b8;font-size:13px">Check network connection or reload</p></div>`;return;}
   load();setupEv();applyLang();renderGrid();setupMQTT();setupPanelResizers();
   $('gap-slider').value=S.gridGap;$('gap-val').textContent=S.gridGap;applyGridGap();
   applyPanelHeights();
   setInterval(pruneAll,5000);
-  // Health check: clean orphaned data every 30s
   setInterval(()=>{
     for(const id in S.data) if(!S.charts.some(c=>c.id===+id)){recycleData(+id);delete S.data[id];}
     if(ptPool.length>5000)ptPool.length=5000;
   },30000);
+  }catch(e){console.error('init:',e);document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0b0f17;color:#ef4444;font-family:sans-serif;flex-direction:column;gap:12px"><h2 style="color:#ef4444">Init Error</h2><p style="color:#94a3b8;font-size:13px">${esc(e.message)}</p><button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;border-radius:6px;border:1px solid #1f2937;background:#111827;color:#e5e7eb;cursor:pointer">Reload</button></div>`;}
 });
 
 /* ─── Sidebar panel resizers (drag to resize) ─── */
@@ -196,18 +198,19 @@ function setupMQTT(){
   window.mqttAPI.onStatus(({status,msg})=>onStatus(status,msg));
 }
 
+function escJs(s){return esc(s).replace(/'/g,"\\'")}
 function selectJsonTopic(topic){S.selectedJsonTopic=topic;renderJsonPreview();}
 
 function renderJsonPreview(){
+  try{
   const el=$('json-preview');
   if(!el)return;
   const topics=Object.keys(S.lastPayloadByTopic);
   let topic=S.selectedJsonTopic;
   if(!topic||!S.lastPayloadByTopic[topic]){topic=topics.length?topics[0]:null;S.selectedJsonTopic=topic;}
-  // Topic tabs
   let tabs='';
   if(topics.length>1){
-    tabs=`<div class="json-tabs">${topics.map(t=>`<span class="json-tab${t===topic?' active':''}" onclick="selectJsonTopic('${esc(t)}')">${esc(t)}</span>`).join('')}</div>`;
+    tabs=`<div class="json-tabs">${topics.map(t=>`<span class="json-tab${t===topic?' active':''}" onclick="selectJsonTopic('${escJs(t)}')">${esc(t)}</span>`).join('')}</div>`;
   }
   if(!topic||!S.lastPayloadByTopic[topic]){
     el.innerHTML=tabs+`<div class="json-empty" data-i18n="jsonWaiting">Waiting for messages...</div>`;
@@ -215,7 +218,6 @@ function renderJsonPreview(){
   }
   const payload=S.lastPayloadByTopic[topic];
   const json=JSON.stringify(payload,null,2);
-  // Syntax-highlight
   const highlighted=json
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"([^"]+)":/g,'<span class="json-key">"$1"</span>:')
@@ -223,7 +225,6 @@ function renderJsonPreview(){
     .replace(/: "([^"]*)"/g,': <span class="json-str">"$1"</span>')
     .replace(/: (true|false)/g,': <span class="json-bool">$1</span>')
     .replace(/: null/g,': <span class="json-null">null</span>');
-  // Build field chips with + button
   let chips='';
   if(payload&&typeof payload==='object'&&!Array.isArray(payload)){
     const fields=Object.entries(payload).filter(([,v])=>!isNaN(+v)).map(([k])=>k);
@@ -234,17 +235,18 @@ function renderJsonPreview(){
         chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'→ 添加到已选图表':'→ Add to selected chart'}: </span>${fields.map(f=>{
           const hasData=!!selData?.fields[f];
           const onChart=selCh&&selCh.topic===topic;
-          if(!onChart)return`<span class="json-field-chip ft-no-topic" onclick="quickAddField('${esc(topic)}','${esc(f)}')" title="Topic mismatch - creates new chart"><span class="plus">+</span>${esc(f)}</span>`;
+          if(!onChart)return`<span class="json-field-chip ft-no-topic" onclick="quickAddField('${escJs(topic)}','${escJs(f)}')" title="Topic mismatch - creates new chart"><span class="plus">+</span>${esc(f)}</span>`;
           const hidden=hasData&&S.inst[S.selectedId]?S.inst[S.selectedId].data.datasets[Object.keys(selData.fields).indexOf(f)]?.hidden:false;
           const active=hasData&&!hidden;
-          return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${esc(f)}')" title="${active?'Hide':'Show'} on chart">${active?'●':hasData?'⊘':'+'} ${esc(f)}</span>`;
+          return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${escJs(f)}')" title="${active?'Hide':'Show'} on chart">${active?'●':hasData?'⊘':'+'} ${esc(f)}</span>`;
         }).join('')}</div>`;
       }else{
-        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'点击 + 创建单字段图表，或先点击图表选中':'Click + for new chart, or click a chart first'}: </span>${fields.map(f=>`<span class="json-field-chip" onclick="quickAddField('${esc(topic)}','${esc(f)}')" title="Add chart for this topic"><span class="plus">+</span>${esc(f)}</span>`).join('')}</div>`;
+        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'点击 + 创建单字段图表，或先点击图表选中':'Click + for new chart, or click a chart first'}: </span>${fields.map(f=>`<span class="json-field-chip" onclick="quickAddField('${escJs(topic)}','${escJs(f)}')" title="Add chart for this topic"><span class="plus">+</span>${esc(f)}</span>`).join('')}</div>`;
       }
     }
   }
   el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
+  }catch(e){console.warn('jsonPrev:',e)}
 }
     }
   }
@@ -272,7 +274,7 @@ function onStatus(status,msg){
 
 /* ─── Events ─── */
 function setupEv(){
-  // Window controls
+  try{
   $('btn-close').onclick=()=>window.winAPI.close();
   $('btn-min').onclick=()=>window.winAPI.minimize();
   $('btn-max').onclick=()=>window.winAPI.toggleMaximize();
@@ -294,6 +296,7 @@ function setupEv(){
   $('bi-export').onclick=exportCSV;
   $('modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
   $('chart-mode').onchange=e=>{const m=e.target.value==='manual';$('expression-group').style.display=m?'':'none';$('color-group').style.display=m?'':'none';$('fields-filter-group').style.display=m?'none':'';};
+  }catch(e){console.warn('setupEv:',e)}
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.isContentEditable)return;
     if(e.key==='Escape'){if(!$('modal-overlay').classList.contains('hidden'))closeModal();else if(S.maxId!==null)closeBI();}
