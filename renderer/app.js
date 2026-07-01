@@ -104,25 +104,31 @@ function startPanelResize(e,rz){
   const aboveH=above.offsetHeight;
   const belowH=below.offsetHeight;
   const startY=e.clientY;
+  const isTop=rz.dataset.below==='charts';
   rz.classList.add('dragging');
   document.body.style.cursor='ns-resize';
   document.body.style.userSelect='none';
-  panelResize={rz,startY,above,below,aboveH,belowH};
+  panelResize={rz,startY,above,below,aboveH,belowH,isTop};
 
   const onMove=ev=>{
     if(!panelResize)return;
     const dy=ev.clientY-panelResize.startY;
-    const newAboveH=Math.max(40,panelResize.aboveH+dy);
-    const newBelowH=Math.max(40,panelResize.belowH-dy);
-    // Apply flex-basis to control height
-    panelResize.above.style.flex=`0 0 ${newAboveH}px`;
-    panelResize.below.style.flex=`0 0 ${newBelowH}px`;
+    if(panelResize.isTop){
+      // Connection panel gets fixed height, Charts fills the rest
+      const nh=Math.max(40,panelResize.aboveH+dy);
+      panelResize.above.style.flex=`0 0 ${nh}px`;
+      panelResize.below.style.flex='1';
+    }else{
+      // JSON panel gets fixed height, Charts fills the rest
+      const nh=Math.max(40,panelResize.belowH-dy);
+      panelResize.below.style.flex=`0 0 ${nh}px`;
+      panelResize.above.style.flex='1';
+    }
   };
   const onUp=()=>{
     if(!panelResize)return;
     panelResize.rz.classList.remove('dragging');
     document.body.style.cursor='';document.body.style.userSelect='';
-    // Save heights
     const aKey=panelResize.above.dataset.panel;
     const bKey=panelResize.below.dataset.panel;
     S.panelH[aKey]=panelResize.above.offsetHeight;
@@ -138,7 +144,7 @@ function startPanelResize(e,rz){
 
 function applyPanelHeights(){
   for(const[key,h]of Object.entries(S.panelH)){
-    if(h!=null){
+    if(h!=null&&key!=='charts'){
       const el=$(`panel-${key}`);
       if(el)el.style.flex=`0 0 ${h}px`;
     }
