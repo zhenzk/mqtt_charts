@@ -24,7 +24,7 @@ const t=k=>(I18N[lang]||{})[k]||k;
 function applyLang(){document.querySelectorAll('[data-i18n]').forEach(e=>{const v=t(e.dataset.i18n);if(v.includes('<'))e.innerHTML=v;else e.textContent=v;});$('lang-toggle').textContent=lang==='zh'?'EN':'中';renderList();}
 
 /* ─── State ─── */
-const S={connected:false,connecting:false,charts:[],data:{},inst:{},maxId:null,maxInst:null,nextId:1,editId:null,demoOn:false,lastJson:null,jsonCount:0,selectedId:null,lastPayloadByTopic:{},gridGap:12,panelH:{connection:null,charts:null,json:null},msgRate:0,msgRateTimer:0,totalPoints:0};
+const S={connected:false,connecting:false,charts:[],data:{},inst:{},maxId:null,maxInst:null,nextId:1,editId:null,demoOn:false,lastJson:null,jsonCount:0,selectedId:null,lastPayloadByTopic:{},selectedJsonTopic:null,gridGap:12,panelH:{connection:null,charts:null,json:null},msgRate:0,msgRateTimer:0,totalPoints:0};
 let dragSrc=null;
 
 /* ─── Toast system ─── */
@@ -185,18 +185,35 @@ async function testConnection(){
 function setupMQTT(){
   window.mqttAPI.onMessage(({topic,payload})=>{
     if(typeof payload==='string'){try{payload=JSON.parse(payload)}catch{return}}
+    S.lastPayloadByTopic[topic]=payload;
     S.lastJson={topic,payload};
-    S.jsonCount++;
-    if(!jsonPreviewTimer){jsonPreviewTimer=setTimeout(()=>{updateJsonPreview(S.lastJson.topic,S.lastJson.payload);jsonPreviewTimer=null;},500);}
+    if(S.jsonCount<999999)S.jsonCount++;
+    if(!S.selectedJsonTopic)S.selectedJsonTopic=topic;
+    if(!jsonPreviewTimer){jsonPreviewTimer=setTimeout(()=>{renderJsonPreview();jsonPreviewTimer=null;},500);}
     // Batch processing for performance
     S.charts.forEach(ch=>{if(ch.topic===topic&&!ch.paused)enqueueMsg(ch,payload);});
   });
   window.mqttAPI.onStatus(({status,msg})=>onStatus(status,msg));
 }
 
-function updateJsonPreview(topic,payload){
+function selectJsonTopic(topic){S.selectedJsonTopic=topic;renderJsonPreview();}
+
+function renderJsonPreview(){
   const el=$('json-preview');
   if(!el)return;
+  const topics=Object.keys(S.lastPayloadByTopic);
+  let topic=S.selectedJsonTopic;
+  if(!topic||!S.lastPayloadByTopic[topic]){topic=topics.length?topics[0]:null;S.selectedJsonTopic=topic;}
+  // Topic tabs
+  let tabs='';
+  if(topics.length>1){
+    tabs=`<div class="json-tabs">${topics.map(t=>`<span class="json-tab${t===topic?' active':''}" onclick="selectJsonTopic('${esc(t)}')">${esc(t)}</span>`).join('')}</div>`;
+  }
+  if(!topic||!S.lastPayloadByTopic[topic]){
+    el.innerHTML=tabs+`<div class="json-empty" data-i18n="jsonWaiting">Waiting for messages...</div>`;
+    return;
+  }
+  const payload=S.lastPayloadByTopic[topic];
   const json=JSON.stringify(payload,null,2);
   // Syntax-highlight
   const highlighted=json
@@ -212,7 +229,6 @@ function updateJsonPreview(topic,payload){
     const fields=Object.entries(payload).filter(([,v])=>!isNaN(+v)).map(([k])=>k);
     if(fields.length){
       if(S.selectedId!==null){
-        // Route to selected chart: show toggle state
         const selCh=S.charts.find(c=>c.id===S.selectedId);
         const selData=S.data[S.selectedId];
         chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'→ 添加到已选图表':'→ Add to selected chart'}: </span>${fields.map(f=>{
@@ -224,8 +240,12 @@ function updateJsonPreview(topic,payload){
           return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${esc(f)}')" title="${active?'Hide':'Show'} on chart">${active?'●':hasData?'⊘':'+'} ${esc(f)}</span>`;
         }).join('')}</div>`;
       }else{
-        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'点击 + 创建单字段图表，或先点击图表选中':'Click + for new chart, or click a chart first'}: </span>${fields.map(f=>`<span class="json-field-chip" onclick="quickAddField('${esc(topic)}','${esc(f)}')" title="Add chart for this field"><span class="plus">+</span>${esc(f)}</span>`).join('')}</div>`;
+        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'点击 + 创建单字段图表，或先点击图表选中':'Click + for new chart, or click a chart first'}: </span>${fields.map(f=>`<span class="json-field-chip" onclick="quickAddField('${esc(topic)}','${esc(f)}')" title="Add chart for this topic"><span class="plus">+</span>${esc(f)}</span>`).join('')}</div>`;
       }
+    }
+  }
+  el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
+}
     }
   }
   el.innerHTML=`<div class="json-topic">topic: ${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
@@ -594,7 +614,7 @@ function selectChart(id){
     if(ft){ft.style.display='';renderFieldToolbar(S.selectedId);}
   }
   // Update JSON chips to reflect selected chart
-  if(S.lastJson)updateJsonPreview(S.lastJson.topic,S.lastJson.payload);
+  renderJsonPreview();
 }
 
 function getAvailableFields(ch){
@@ -757,7 +777,7 @@ function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s
 function fmt(n){if(n==null||n==='—')return'—';if(Number.isInteger(n))return n.toLocaleString();return(+n).toFixed(2);}
 function clearAll(){Object.keys(S.data).forEach(id=>{recycleData(+id);S.data[id]={fields:{}};_upd(+id);});if(S.maxId!=null)renderBI();}
 function togglePanel(el){el.classList.toggle('collapsed');}
-window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;
+window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;
 
 /* Quick-add chart for a single field from JSON preview */
 function quickAddField(topic,field){
