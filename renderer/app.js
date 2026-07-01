@@ -330,6 +330,7 @@ async function doConnect(){
   else toast(t('connected'),'success');
 }
 function subAll(){const ts=new Set();S.charts.forEach(c=>{if(c.topic)ts.add(c.topic);});ts.forEach(tp=>window.mqttAPI.subscribe(tp));}
+function unsubIfNeeded(topic){if(!S.charts.some(c=>c.topic===topic))window.mqttAPI.unsubscribe(topic);}
 
 /* ─── Demo Mode (real MQTT publisher in main process) ─── */
 async function toggleDemo(){
@@ -439,14 +440,18 @@ function addChart(cfg){
 function recycleData(id){const d=S.data[id];if(!d)return;for(const f in d.fields){const a=d.fields[f];while(a.length){const p=a.pop();if(p)recyclePt(p);}}}
 function removeChart(id){
   const card=document.querySelector(`.card[data-cid="${id}"]`);
+  const ch=S.charts.find(c=>c.id===id);
+  const topic=ch?.topic;
   if(card){card.classList.add('removing');setTimeout(()=>{
     S.charts=S.charts.filter(c=>c.id!==id);recycleData(id);delete S.data[id];
     if(S.inst[id]){S.inst[id].destroy();delete S.inst[id];}
+    if(topic)unsubIfNeeded(topic);
     if(S.maxId===id)closeBI();if(S.selectedId===id)S.selectedId=null;
     renderList();renderGrid();save();
   },180);}else{
     S.charts=S.charts.filter(c=>c.id!==id);recycleData(id);delete S.data[id];
     if(S.inst[id]){S.inst[id].destroy();delete S.inst[id];}
+    if(topic)unsubIfNeeded(topic);
     if(S.maxId===id)closeBI();if(S.selectedId===id)S.selectedId=null;
     renderList();renderGrid();save();
   }

@@ -2,6 +2,7 @@
   "name": "mqtt-line-chart",
   "version": "1.0.0",
   "description": "MQTT JSON Line Chart Dashboard - Real-time data visualization desktop tool",
+  "author": "zhenzk",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

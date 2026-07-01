@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, session } = require('electron');
 const path = require('path');
 const mqtt = require('mqtt');
 
@@ -26,6 +26,10 @@ function createWindow() {
   });
   Menu.setApplicationMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // Content-Security-Policy (allow unsafe-eval for custom expressions)
+  session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
+    cb({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src *"] } });
+  });
   // Toggle DevTools with F12
   mainWindow.webContents.on('before-input-event', (e, input) => {
     if (input.key === 'F12') mainWindow.webContents.toggleDevTools();
