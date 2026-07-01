@@ -12,12 +12,15 @@ const TIME_RANGES = {
   '30s': 30000, '1m': 60000, '2m': 120000, '5m': 300000,
   '15m': 900000, '30m': 1800000, '1h': 3600000, '2h': 7200000, 'all': 0,
 };
+
+/* ─── Default limits config ─── */
+const DLIMITS = {upper:{value:100,color:'#ef4444',label:'Upper',on:false},lower:{value:0,color:'#ef4444',label:'Lower',on:false},on:false};
 const DEFAULT_TIME_RANGE = '5m';
 
 /* ─── i18n ─── */
 const I18N = {
-  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...'},
-  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...'}
+  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...',limits:'阈值线',upperLimit:'上限',lowerLimit:'下限',limitValue:'值',limitColor:'颜色',limitLabel:'标签',limitEnable:'开启'},
+  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...',limits:'Limits',upperLimit:'Upper',lowerLimit:'Lower',limitValue:'Value',limitColor:'Color',limitLabel:'Label',limitEnable:'Enable'}
 };
 let lang='en';
 const t=k=>(I18N[lang]||{})[k]||k;
@@ -68,8 +71,8 @@ let jsonPreviewTimer=null;
 function queueUp(id){if(document.hidden)return;uq.add(id);if(!rafId){rafId=requestAnimationFrame(()=>{uq.forEach(id=>_upd(id));uq.clear();rafId=null;if(S.maxId!==null)updBI();});}}
 
 /* ─── Storage ─── */
-function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
-function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,charts:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
+function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
+function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,charts:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS))});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
 
 function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap+'px';}
 function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
@@ -431,7 +434,7 @@ function stats(pts){
 function addChart(cfg){
   const id=S.nextId++;
   const ff=(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null};
+  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS))};
   S.charts.push(ch);S.data[id]={fields:{}};
   renderList();renderGrid();
   if(S.connected&&ch.topic)window.mqttAPI.subscribe(ch.topic);
@@ -500,7 +503,7 @@ function renderGrid(){
 function createCard(ch){
   const card=document.createElement('div');
   card.className='card';card.dataset.cid=ch.id;card.draggable=true;
-  card.innerHTML=`<div class="card-head"><span class="card-title" id="ct-${ch.id}" ondblclick="renameChart(${ch.id})" title="Double-click to rename">${esc(ch.title)}</span><span class="card-topic">${esc(ch.topic)}</span><select class="time-sel" onchange="setTimeRange(${ch.id},this.value)" title="Time range">${Object.keys(TIME_RANGES).map(r=>`<option value="${r}"${ch.timeRange===r?' selected':''}>${r}</option>`).join('')}</select><div class="card-acts"><button class="act pause" onclick="togglePause(${ch.id})" title="Pause">${ch.paused?'▶':'⏸'}</button><button class="act max" onclick="openBI(${ch.id})" title="Maximize">⛶</button><button class="act del" onclick="removeChart(${ch.id})" title="Delete">✕</button></div></div><div class="card-body"><canvas id="cv-${ch.id}"></canvas></div><div class="card-legend" id="lg-${ch.id}"></div><div class="card-fields" id="cf-${ch.id}"></div><div class="card-resize"></div>`;
+  card.innerHTML=`<div class="card-head"><span class="card-title" id="ct-${ch.id}" ondblclick="renameChart(${ch.id})" title="Double-click to rename">${esc(ch.title)}</span><span class="card-topic">${esc(ch.topic)}</span><select class="time-sel" onchange="setTimeRange(${ch.id},this.value)" title="Time range">${Object.keys(TIME_RANGES).map(r=>`<option value="${r}"${ch.timeRange===r?' selected':''}>${r}</option>`).join('')}</select><div class="card-acts"><button class="act limit" onclick="event.stopPropagation();toggleLimits(${ch.id})" title="Limits">⫧</button><button class="act pause" onclick="togglePause(${ch.id})" title="Pause">${ch.paused?'▶':'⏸'}</button><button class="act max" onclick="openBI(${ch.id})" title="Maximize">⛶</button><button class="act del" onclick="removeChart(${ch.id})" title="Delete">✕</button></div></div><div class="card-body"><canvas id="cv-${ch.id}"></canvas><div class="limit-popover" id="lp-${ch.id}"></div></div><div class="card-legend" id="lg-${ch.id}"></div><div class="card-fields" id="cf-${ch.id}"></div><div class="card-resize"></div>`;
   // Click to select chart (not when clicking buttons/selects/legend)
   card.addEventListener('click',e=>{if(e.target.closest('button')||e.target.closest('select')||e.target.closest('.legend-item')||e.target.closest('.ft-chip')||e.target.isContentEditable)return;selectChart(ch.id);});
   card.addEventListener('dragstart',e=>{if(e.target.closest('.card-resize')||e.target.isContentEditable){e.preventDefault();return;}dragSrc=ch.id;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';const g=card.cloneNode(true);g.className='card drag-ghost';g.style.width=card.offsetWidth+'px';document.body.appendChild(g);e.dataTransfer.setDragImage(g,0,0);setTimeout(()=>document.body.removeChild(g),0);});
@@ -606,6 +609,72 @@ function toggleLine(id,dsIdx){
   updLegend(id);
   if(S.selectedId===id)renderFieldToolbar(id);
 }
+
+/* ─── Limit Lines ─── */
+function toggleLimits(id){
+  const ch=S.charts.find(c=>c.id===id);if(!ch)return;
+  const pop=$(`lp-${id}`);if(!pop)return;
+  // Toggle popover visibility
+  if(ch.limits._open){ch.limits._open=false;pop.style.display='none';return;}
+  ch.limits._open=true;
+  renderLimitPopover(id);
+  pop.style.display='';
+}
+
+function renderLimitPopover(id){
+  const ch=S.charts.find(c=>c.id===id);if(!ch)return;
+  const pop=$(`lp-${id}`);if(!pop)return;
+  const L=ch.limits;
+  pop.innerHTML=`<div class="lp-head">${t('limits')} <button class="lp-close" onclick="toggleLimits(${id})">✕</button></div>
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.upper.on?'checked':''} onchange="setLimit(${id},'upper','on',this.checked)"> ${t('upperLimit')}</label><input type="number" class="lp-val" value="${L.upper.value}" onchange="setLimit(${id},'upper','value',+this.value)"><input type="color" class="lp-col" value="${L.upper.color}" onchange="setLimit(${id},'upper','color',this.value)"><input class="lp-lbl" value="${esc(L.upper.label)}" placeholder="${t('limitLabel')}" onchange="setLimit('${id}','upper','label',this.value)"></div>
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.lower.on?'checked':''} onchange="setLimit(${id},'lower','on',this.checked)"> ${t('lowerLimit')}</label><input type="number" class="lp-val" value="${L.lower.value}" onchange="setLimit(${id},'lower','value',+this.value)"><input type="color" class="lp-col" value="${L.lower.color}" onchange="setLimit(${id},'lower','color',this.value)"><input class="lp-lbl" value="${esc(L.lower.label)}" placeholder="${t('limitLabel')}" onchange="setLimit('${id}','lower','label',this.value)"></div>`;
+}
+
+function setLimit(id,which,prop,val){
+  id=+id;
+  const ch=S.charts.find(c=>c.id===id);if(!ch||!ch.limits)return;
+  ch.limits[which][prop]=val;
+  // Update the chart to redraw limit lines
+  try{if(S.inst[id])S.inst[id].update('none');}catch{}
+  save();
+}
+
+// Chart.js plugin to draw limit lines on canvas
+const limitPlugin={id:'limits',afterDraw:function(chart){
+  const cid=+(chart.canvas.id||'').replace('cv-','');
+  if(!cid)return;
+  const ch=S.charts.find(c=>c.id===cid);
+  if(!ch||!ch.limits||!ch.limits.on)return;
+  const{ctx,chartArea:{top,bottom,left,right},scales}=chart;
+  if(!scales.y)return;
+  const drawLine=({value,color,label,on})=>{
+    if(!on)return;
+    const y=scales.y.getPixelForValue(value);
+    if(y<top-5||y>bottom+5)return;
+    ctx.save();
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=color;ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';
+    ctx.fillText(label?label+': '+value:value,right-2,y-2);
+    ctx.restore();
+  };
+  const fillZone=(which)=>{
+    if(!ch.limits[which].on)return;
+    const y=scales.y.getPixelForValue(ch.limits[which].value);
+    if(y<top||y>bottom)return;
+    ctx.save();
+    ctx.fillStyle=ch.limits[which].color+'20';
+    if(which==='upper')ctx.fillRect(left,top,right-left,y-top);
+    else ctx.fillRect(left,y,right-left,bottom-y);
+    ctx.restore();
+  };
+  drawLine({...ch.limits.upper});drawLine({...ch.limits.lower});
+  fillZone('upper');fillZone('lower');
+}};
+
+// Register plugin
+Chart.register(limitPlugin);
 
 /* ─── Interactive field management ─── */
 function selectChart(id){
@@ -781,7 +850,7 @@ function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s
 function fmt(n){if(n==null||n==='—')return'—';if(Number.isInteger(n))return n.toLocaleString();return(+n).toFixed(2);}
 function clearAll(){Object.keys(S.data).forEach(id=>{recycleData(+id);S.data[id]={fields:{}};_upd(+id);});if(S.maxId!=null)renderBI();}
 function togglePanel(el){el.classList.toggle('collapsed');}
-window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;
+window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;
 
 /* Quick-add chart for a single field from JSON preview */
 function quickAddField(topic,field){
