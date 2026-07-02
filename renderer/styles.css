@@ -69,14 +69,18 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','P
 .json-punc{color:var(--text-3)}
 .json-topic{font-size:9px;color:var(--text-3);margin-bottom:4px;font-family:monospace}
 .json-tree{font-family:'SF Mono','Consolas','Monaco',monospace;font-size:10.5px;line-height:1.7;white-space:nowrap;overflow-x:auto}
-.json-block{display:block}
-.json-line{display:block;white-space:nowrap}
-.json-toggle{cursor:pointer;user-select:none;display:inline-block;width:12px;color:var(--text-4);transition:transform .15s}
+.json-node{display:block}
+.json-line{display:block;white-space:nowrap;cursor:pointer;transition:background .1s;border-radius:3px;padding:0 2px}
+.json-line:hover{background:var(--surface-2)}
+.json-leaf{cursor:default}
+.json-toggle{cursor:pointer;user-select:none;display:inline-block;width:12px;color:var(--text-4);transition:transform .15s;text-align:center}
 .json-children{display:block}
 .json-children.collapsed{display:none}
-.json-children.collapsed+.json-line{display:none}
 .json-count{font-size:9px;color:var(--text-4);opacity:.6}
 .json-punc{color:var(--text-3)}
+.json-check{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;vertical-align:middle;margin-right:4px}
+.json-sub-badge{font-size:8px;background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:3px;margin-left:6px;font-family:sans-serif}
+.json-hint-inline{font-size:8px;color:var(--text-4);font-family:sans-serif;margin-left:6px}
 .json-tabs{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
 .json-tab{font-size:9px;font-family:monospace;padding:2px 6px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-3);cursor:pointer;transition:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
 .json-tab:hover{border-color:var(--border-2);color:var(--text-2)}

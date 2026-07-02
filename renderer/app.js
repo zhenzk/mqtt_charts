@@ -220,81 +220,93 @@ function renderJsonPreview(){
     return;
   }
   const payload=S.lastPayloadByTopic[topic];
-  // Collect all numeric fields recursively (with dotted path)
-  const numFields=[];
-  function collectNum(obj,prefix){
-    if(!obj||typeof obj!=='object'||Array.isArray(obj))return;
+  // Find which chart(s) match this topic (no subKey = top-level, subKey = nested)
+  const matchingCharts=S.charts.filter(c=>c.topic===topic);
+  // Build collapsible tree with checkboxes for numeric leaf fields
+  function buildTree(obj,depth,prefix){
+    if(!obj||typeof obj!=='object'||Array.isArray(obj))return '';
+    let html='';
     for(const[k,v]of Object.entries(obj)){
       const path=prefix?prefix+'.'+k:k;
-      if(v&&typeof v==='object'&&!Array.isArray(v))collectNum(v,path);
-      else if(!isNaN(+v)&&typeof v!=='object')numFields.push({path,val:v});
-    }
-  }
-  collectNum(payload,'');
-  // Build collapsible JSON tree
-  function buildTree(obj,depth){
-    if(!obj||typeof obj!=='object'||Array.isArray(obj))return '';
-    const pad=depth*12;
-    let html='<div class="json-block" style="margin-left:'+pad+'px">';
-    for(const[k,v]of Object.entries(obj)){
       const isObj=v&&typeof v==='object'&&!Array.isArray(v);
       if(isObj){
-        html+=`<div class="json-line"><span class="json-toggle" onclick="this.parentElement.nextElementSibling.classList.toggle('collapsed')">▾</span><span class="json-key">"${esc(k)}"</span>: <span class="json-punc">{</span> <span class="json-count">${Object.keys(v).length}</span></div>`;
-        html+=`<div class="json-children">${buildTree(v,depth+1)}</div>`;
-        html+=`<div class="json-line" style="margin-left:${pad}px"><span class="json-punc">}</span></div>`;
+        // Check if any chart uses this as subKey
+        const chartForSub=matchingCharts.find(c=>c.subKey===path);
+        const subBadge=chartForSub?`<span class="json-sub-badge" title="Chart: ${esc(chartForSub.title)}">${esc(chartForSub.title)}</span>`:'';
+        html+=`<div class="json-node"><div class="json-line" onclick="this.parentElement.querySelector('.json-children').classList.toggle('collapsed')"><span class="json-toggle">▾</span><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="json-punc">{</span> <span class="json-count">${Object.keys(v).length}</span>${subBadge}</div>`;
+        html+=`<div class="json-children">${buildTree(v,depth+1,path)}</div>`;
+        html+=`</div>`;
       }else{
+        const isNum=!isNaN(+v)&&typeof v!=='object';
         const cls=typeof v==='string'?'json-str':typeof v==='boolean'?'json-bool':v===null?'json-null':'json-num';
         const valStr=typeof v==='string'?`"${esc(v)}"`:v===null?'null':v;
-        html+=`<div class="json-line"><span class="json-key">"${esc(k)}"</span>: <span class="${cls}">${valStr}</span></div>`;
+        if(isNum){
+          // Find which chart(s) have this field
+          const inCharts=matchingCharts.filter(c=>{
+            const fieldName=c.subKey?path.split(c.subKey+'.')[1]:path;
+            return fieldName&&c.subKey===(path.includes('.')?path.split('.')[0]:'')&&fieldName===path.split('.').slice(1).join('.')&&data.fields;
+          });
+          // Check if any matching chart has this field active
+          let checked=false;
+          for(const c of matchingCharts){
+            const fn=c.subKey?(path.startsWith(c.subKey+'.')?path.slice(c.subKey.length+1):null):path;
+            if(fn&&S.data[c.id]?.fields[fn]&&!S.inst[c.id]?.data.datasets[Object.keys(S.data[c.id].fields).indexOf(fn)]?.hidden){checked=true;break;}
+          }
+          html+=`<div class="json-line json-leaf"><input type="checkbox" class="json-check" ${checked?'checked':''} onclick="event.stopPropagation();toggleFieldByPath('${escJs(topic)}','${escJs(path)}')" title="${esc(path)} = ${v}"><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="${cls}">${valStr}</span></div>`;
+        }else{
+          html+=`<div class="json-line json-leaf"><span style="display:inline-block;width:14px"></span><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="${cls}">${valStr}</span></div>`;
+        }
       }
     }
-    html+='</div>';
     return html;
   }
-  const treeHtml=buildTree(payload,0);
-  // Build field chips: show fields matching selected chart's subKey, or all if no chart selected
-  let chips='';
-  if(numFields.length){
-    const selCh=S.selectedId!==null?S.charts.find(c=>c.id===S.selectedId):null;
-    const selData=S.selectedId!==null?S.data[S.selectedId]:null;
-    // Filter fields: if selected chart has subKey, show only that subKey's fields
-    let displayFields=numFields;
-    let chipLabel='';
-    if(selCh&&selCh.topic===topic&&selCh.subKey){
-      displayFields=numFields.filter(f=>f.path.startsWith(selCh.subKey+'.'));
-      chipLabel=lang==='zh'?`→ ${selCh.subKey}: `:`→ ${selCh.subKey}: `;
-    }else if(selCh&&selCh.topic===topic&&!selCh.subKey){
-      // Top-level only
-      displayFields=numFields.filter(f=>!f.path.includes('.'));
-      chipLabel=lang==='zh'?'→ 添加到已选图表: ':'→ Add to selected: ';
-    }else if(selCh&&selCh.topic!==topic){
-      chipLabel=lang==='zh'?'→ topic 不匹配，点 + 新建: ':'→ Topic mismatch, + for new: ';
-    }else{
-      chipLabel=lang==='zh'?'点击 + 新建图表，或先点选图表: ':'Click + for new, or select a chart: ';
-    }
-    const fieldsToShow=displayFields.slice(0,60);
-    chips=`<div class="json-fields"><span class="json-hint">${chipLabel}</span>${fieldsFieldsChips(fieldsToShow,selCh,selData,topic)}</div>`;
-    if(numFields.length>60&&selCh&&selCh.subKey){
-      const totalInSub=numFields.filter(f=>f.path.startsWith(selCh.subKey+'.')).length;
-      if(totalInSub>60)chips+=`<div class="json-hint" style="margin-top:3px">${lang==='zh'?'还有 ':''}${totalInSub-60} ${lang==='zh'?'个字段未显示':'more fields not shown'}</div>`;
-    }
-  }
-  el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount} · ${numFields.length} ${lang==='zh'?'个数值字段':'num fields'}</div>${chips}<div class="json-tree">${treeHtml}</div>`;
+  const treeHtml=buildTree(payload,0,'');
+  // Count numeric fields
+  let numCount=0;
+  function countNum(obj){if(!obj||typeof obj!=='object')return;for(const v of Object.values(obj)){if(v&&typeof v==='object')countNum(v);else if(!isNaN(+v)&&typeof v!=='object')numCount++;}}
+  countNum(payload);
+  // Hint
+  const hint=lang==='zh'?'勾选数值字段 → 自动创建/添加到同 topic 图表':'Check a field → auto-create/add to chart';
+  el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount} · ${numCount} ${lang==='zh'?'个数值':'num fields'} <span class="json-hint-inline">${hint}</span></div><div class="json-tree">${treeHtml}</div>`;
   }catch(e){console.warn('jsonPrev:',e)}
 }
 
-function fieldsFieldsChips(fields,selCh,selData,topic){
-  return fields.map(f=>{
-    const shortName=f.path.split('.').pop();
-    if(selCh&&selCh.topic===topic){
-      const fieldName=selCh.subKey?f.path.split(selCh.subKey+'.')[1]||f.path:f.path;
-      const hasData=!!selData?.fields[fieldName];
-      const hidden=hasData&&S.inst[S.selectedId]?S.inst[S.selectedId].data.datasets[Object.keys(selData.fields).indexOf(fieldName)]?.hidden:false;
-      const active=hasData&&!hidden;
-      return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${escJs(fieldName)}')" title="${f.path} = ${f.val}">${active?'●':hasData?'⊘':'+'} ${esc(shortName)}</span>`;
+function toggleFieldByPath(topic,path){
+  // Find subKey from path (first segment)
+  const dotIdx=path.indexOf('.');
+  const subKey=dotIdx>0?path.substring(0,dotIdx):'';
+  const fieldName=dotIdx>0?path.substring(dotIdx+1):path;
+  // Find existing chart with same topic+subKey
+  let ch=S.charts.find(c=>c.topic===topic&&c.subKey===subKey);
+  if(!ch){
+    // Auto-create chart
+    const title=subKey?subKey.split('_').pop()||subKey:fieldName;
+    ch=addChart({title,topic,mode:'auto',fieldsFilter:fieldName,subKey});
+    S.selectedId=ch.id;
+    document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',+c.dataset.cid===ch.id));
+    toast(lang==='zh'?'已创建图表: '+title:'Created chart: '+title,'success',2000);
+  }else{
+    // Add field to existing chart if not already
+    const data=S.data[ch.id];
+    if(data.fields[fieldName]){
+      // Toggle visibility
+      const inst=S.inst[ch.id];
+      const fields=Object.keys(data.fields);
+      const dsIdx=fields.indexOf(fieldName);
+      if(inst&&inst.data.datasets[dsIdx]!==undefined){
+        inst.data.datasets[dsIdx].hidden=!inst.data.datasets[dsIdx].hidden;
+        inst.update('none');
+      }
+    }else{
+      // Add to fieldsFilter
+      if(!ch.fieldsFilter.includes(fieldName))ch.fieldsFilter.push(fieldName);
+      toast(lang==='zh'?'已添加字段: '+fieldName:'Added: '+fieldName,'success',1500);
     }
-    return`<span class="json-field-chip" onclick="quickAddField('${escJs(topic)}','${escJs(f.path)}','${escJs(selCh?selCh.subKey:'')}')" title="${f.path} = ${f.val}"><span class="plus">+</span>${esc(shortName)}</span>`;
-  }).join('');
+    updLegend(ch.id);
+    save();
+  }
+  // Re-render to update checkbox states
+  setTimeout(renderJsonPreview,50);
 }
 
 function onStatus(status,msg){
@@ -922,7 +934,7 @@ function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s
 function fmt(n){if(n==null||n==='—')return'—';if(Number.isInteger(n))return n.toLocaleString();return(+n).toFixed(2);}
 function clearAll(){Object.keys(S.data).forEach(id=>{recycleData(+id);S.data[id]={fields:{}};_upd(+id);});if(S.maxId!=null)renderBI();}
 function togglePanel(el){el.classList.toggle('collapsed');}
-window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;
+window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;window.toggleFieldByPath=toggleFieldByPath;
 
 /* Quick-add chart for a single field from JSON preview */
 function quickAddField(topic,fieldPath,suggestedSubKey){
