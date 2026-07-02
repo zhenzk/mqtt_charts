@@ -3,9 +3,7 @@
    bezier curves · gradient fills · auto-demo · BI dashboard
    ═══════════════════════════════════════════════════════ */
 const PALETTE = ['#3b82f6','#10b981','#f59e0b','#ef4444','#a855f7','#06b6d4','#fb923c','#ec4899','#84cc16','#e879f9'];
-const STORE_KEY = 'mqtt-charts-v5';
-const DEMO_BROKER = 'mqtt://broker.hivemq.com:1883';
-const DEMO_TOPIC = 'mqtt-charts/demo';
+const STORE_KEY = 'mqtt-charts-v6';
 
 /* ─── Time ranges (ms) ─── */
 const TIME_RANGES = {
@@ -14,7 +12,7 @@ const TIME_RANGES = {
 };
 
 /* ─── Default limits config ─── */
-const DLIMITS = {upper:{value:100,color:'#ef4444',label:'Upper',on:false},lower:{value:0,color:'#ef4444',label:'Lower',on:false},on:false};
+const DLIMITS = {upper:{value:100,color:'#ef4444',label:'Upper',on:false},lower:{value:0,color:'#ef4444',label:'Lower',on:false}};
 const DEFAULT_TIME_RANGE = '5m';
 
 /* ─── i18n ─── */
@@ -75,7 +73,6 @@ function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topi
 function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||'',hiddenFields:ch.hiddenFields||[]});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
 
 function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap+'px';}
-function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
 
 /* ─── Init ─── */
 window.onerror=(m,s,l,c,e)=>{console.error('GLOBAL:',m,e);try{toast('Error: '+m,'error',5000)}catch{}};
@@ -212,38 +209,27 @@ function renderJsonPreview(){
     return;
   }
   const payload=S.lastPayloadByTopic[topic];
-  // Find which chart(s) match this topic (no subKey = top-level, subKey = nested)
   const matchingCharts=S.charts.filter(c=>c.topic===topic);
-  // Build collapsible tree with checkboxes for numeric leaf fields
-  function buildTree(obj,depth,prefix){
+  function buildTree(obj,prefix){
     if(!obj||typeof obj!=='object'||Array.isArray(obj))return '';
     let html='';
     for(const[k,v]of Object.entries(obj)){
       const path=prefix?prefix+'.'+k:k;
       const isObj=v&&typeof v==='object'&&!Array.isArray(v);
       if(isObj){
-        // Check if any chart uses this as subKey
         const chartForSub=matchingCharts.find(c=>c.subKey===path);
-        const subBadge=chartForSub?`<span class="json-sub-badge" title="Chart: ${esc(chartForSub.title)}">${esc(chartForSub.title)}</span>`:'';
+        const subBadge=chartForSub?`<span class="json-sub-badge" title="${esc(chartForSub.title)}">${esc(chartForSub.title)}</span>`:'';
         html+=`<div class="json-node"><div class="json-line" onclick="this.parentElement.querySelector('.json-children').classList.toggle('collapsed')"><span class="json-toggle">▾</span><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="json-punc">{</span> <span class="json-count">${Object.keys(v).length}</span>${subBadge}</div>`;
-        html+=`<div class="json-children">${buildTree(v,depth+1,path)}</div>`;
-        html+=`</div>`;
+        html+=`<div class="json-children">${buildTree(v,path)}</div></div>`;
       }else{
         const isNum=!isNaN(+v)&&typeof v!=='object';
         const cls=typeof v==='string'?'json-str':typeof v==='boolean'?'json-bool':v===null?'json-null':'json-num';
         const valStr=typeof v==='string'?`"${esc(v)}"`:v===null?'null':v;
         if(isNum){
-          // Find which chart(s) have this field
-          const inCharts=matchingCharts.filter(c=>{
-            const fieldName=c.subKey?path.split(c.subKey+'.')[1]:path;
-            return fieldName&&c.subKey===(path.includes('.')?path.split('.')[0]:'')&&fieldName===path.split('.').slice(1).join('.')&&data.fields;
-          });
-          // Check if any matching chart has this field active
+          const subKey=prefix||'';
+          const ch=matchingCharts.find(c=>c.subKey===subKey);
           let checked=false;
-          for(const c of matchingCharts){
-            const fn=c.subKey?(path.startsWith(c.subKey+'.')?path.slice(c.subKey.length+1):null):path;
-            if(fn&&S.data[c.id]?.fields[fn]&&!S.inst[c.id]?.data.datasets[Object.keys(S.data[c.id].fields).indexOf(fn)]?.hidden){checked=true;break;}
-          }
+          if(ch&&ch.fieldsFilter.includes(k))checked=!ch.hiddenFields.includes(k);
           html+=`<div class="json-line json-leaf"><input type="checkbox" class="json-check" ${checked?'checked':''} onclick="event.stopPropagation();toggleFieldByPath('${escJs(topic)}','${escJs(path)}')" title="${esc(path)} = ${v}"><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="${cls}">${valStr}</span></div>`;
         }else{
           html+=`<div class="json-line json-leaf"><span style="display:inline-block;width:14px"></span><span class="json-key">"${esc(k)}"</span><span class="json-punc">:</span> <span class="${cls}">${valStr}</span></div>`;
@@ -252,56 +238,41 @@ function renderJsonPreview(){
     }
     return html;
   }
-  const treeHtml=buildTree(payload,0,'');
-  // Count numeric fields
+  const treeHtml=buildTree(payload,'');
   let numCount=0;
   function countNum(obj){if(!obj||typeof obj!=='object')return;for(const v of Object.values(obj)){if(v&&typeof v==='object')countNum(v);else if(!isNaN(+v)&&typeof v!=='object')numCount++;}}
   countNum(payload);
-  // Hint
-  const hint=lang==='zh'?'勾选数值字段 → 自动创建/添加到同 topic 图表':'Check a field → auto-create/add to chart';
+  const hint=lang==='zh'?'勾选字段 → 添加到已有图表（需先新建图表）':'Check field → add to existing chart';
   el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount} · ${numCount} ${lang==='zh'?'个数值':'num fields'} <span class="json-hint-inline">${hint}</span></div><div class="json-tree">${treeHtml}</div>`;
   }catch(e){console.warn('jsonPrev:',e)}
 }
 
 function toggleFieldByPath(topic,path){
-  // Find subKey from path (first segment)
   const dotIdx=path.indexOf('.');
   const subKey=dotIdx>0?path.substring(0,dotIdx):'';
   const fieldName=dotIdx>0?path.substring(dotIdx+1):path;
-  // Find existing chart with same topic+subKey
-  let ch=S.charts.find(c=>c.topic===topic&&c.subKey===subKey);
+  const ch=S.charts.find(c=>c.topic===topic&&c.subKey===subKey);
   if(!ch){
-    // No chart exists — prompt to create via modal
-    toast(lang==='zh'?'请先新建图表，选择该 topic 和子对象':'Create a chart first with this topic+subKey','warn',3000);
-    // Uncheck the checkbox since we're not adding
+    toast(lang==='zh'?'请先新建图表（选择该 topic 和子对象）':'Create a chart with this topic+subKey first','warn',3000);
     setTimeout(renderJsonPreview,10);
     return;
   }
-  // Chart exists — toggle field
-  const data=S.data[ch.id];
   if(ch.fieldsFilter.includes(fieldName)){
-    // Field is in filter — toggle hidden
-    if(ch.hiddenFields.includes(fieldName)){
-      ch.hiddenFields=ch.hiddenFields.filter(f=>f!==fieldName);
-    }else{
-      ch.hiddenFields.push(fieldName);
-    }
-    // Apply to chart instance
-    const inst=S.inst[ch.id];
-    if(inst){
+    if(ch.hiddenFields.includes(fieldName))ch.hiddenFields=ch.hiddenFields.filter(f=>f!==fieldName);
+    else ch.hiddenFields.push(fieldName);
+    const inst=S.inst[ch.id],data=S.data[ch.id];
+    if(inst&&data){
       const fields=Object.keys(data.fields);
       const dsIdx=fields.indexOf(fieldName);
       if(dsIdx>=0&&inst.data.datasets[dsIdx]){inst.data.datasets[dsIdx].hidden=ch.hiddenFields.includes(fieldName);inst.update('none');}
     }
+    if(S.maxId===ch.id&&S.maxInst){try{S.maxInst.update('none');}catch{}}
     updLegend(ch.id);
     save();
   }else{
-    // Field not in filter — add it
-    ch.fieldsFilter.push(fieldName);
-    toast(lang==='zh'?'已添加字段: '+fieldName:'Added: '+fieldName,'success',1500);
-    save();
+    toast(lang==='zh'?'该字段未在图表中选择，请编辑图表添加':'Field not in chart, edit chart to add it','warn',2000);
+    setTimeout(renderJsonPreview,10);
   }
-  setTimeout(renderJsonPreview,50);
 }
 
 function onStatus(status,msg){
@@ -462,7 +433,7 @@ function stats(pts){
 /* ─── CRUD ─── */
 function addChart(cfg){
   const id=S.nextId++;
-  const ff=(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const ff=Array.isArray(cfg.fieldsFilter)?cfg.fieldsFilter.filter(Boolean):(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
   const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS)),subKey:cfg.subKey||'',hiddenFields:cfg.hiddenFields||[]};
   S.charts.push(ch);S.data[id]={fields:{}};
   renderGrid();
@@ -633,10 +604,18 @@ function updLegend(id){
 
 function toggleLine(id,dsIdx){
   const inst=S.inst[id];if(!inst||!inst.data.datasets[dsIdx])return;
+  const ch=S.charts.find(c=>c.id===id);if(!ch)return;
   inst.data.datasets[dsIdx].hidden=!inst.data.datasets[dsIdx].hidden;
+  const fields=ch.mode==='manual'?['_v']:Object.keys(S.data[id].fields);
+  const fName=fields[dsIdx];if(!fName)return;
+  if(inst.data.datasets[dsIdx].hidden){if(!ch.hiddenFields.includes(fName))ch.hiddenFields.push(fName);}
+  else{ch.hiddenFields=ch.hiddenFields.filter(f=>f!==fName);}
   try{inst.update('none');}catch{}
   updLegend(id);
   if(S.selectedId===id)renderFieldToolbar(id);
+  // Sync BI if open
+  if(S.maxId===id&&S.maxInst){try{S.maxInst.update('none');}catch{}}
+  save();
 }
 
 /* ─── Limit Lines ─── */
@@ -733,7 +712,7 @@ function getAvailableFields(ch){
       jsonFields=Object.entries(obj).filter(([,v])=>!isNaN(+v)).map(([k])=>k);
     }
   }
-  return [...new Set([...collected,...jsonFields])];
+  return [...new Set([...collected,...jsonFields.filter(f=>ch.fieldsFilter.includes(f))])];
 }
 
 function renderFieldToolbar(id){
@@ -855,7 +834,7 @@ function openModal(editId){
   $('modal-title').textContent=editId?t('editChart'):t('addChart');
   const isM=editId?(S.charts.find(c=>c.id===editId)?.mode==='manual'):false;
   if(editId){const c=S.charts.find(c=>c.id===editId);if(c){$('chart-title').value=c.title;$('chart-topic').value=c.topic;$('chart-mode').value=c.mode;$('chart-expression').value=c.expression;$('chart-maxpoints').value=c.maxPoints;$('chart-color').value=c.color;$('chart-ylabel').value=c.yLabel||'';$('chart-timerange').value=c.timeRange||DEFAULT_TIME_RANGE;populateSubKeys(c.topic,c.subKey||'');populateFieldChecklist(c.topic,c.subKey||'',c.fieldsFilter||[]);}}
-  else{$('chart-title').value='';$('chart-topic').value='';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;populateSubKeys('','');populateFieldChecklist('','',[]);}
+  else{$('chart-title').value='';$('chart-topic').value=S.selectedJsonTopic||'';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;populateSubKeys(S.selectedJsonTopic||'','');populateFieldChecklist(S.selectedJsonTopic||'','',[]);}
   $('expression-group').style.display=isM?'':'none';$('color-group').style.display=isM?'':'none';$('fields-filter-group').style.display=isM?'none':'';
   $('modal-overlay').classList.remove('hidden');setTimeout(()=>$('chart-title').focus(),80);
 }
@@ -886,16 +865,28 @@ function populateFieldChecklist(topic,subKey,selectedFields){
   if(!obj||typeof obj!=='object'||Array.isArray(obj)){el.innerHTML=`<span class="ft-empty">—</span>`;return;}
   const numFields=Object.entries(obj).filter(([,v])=>!isNaN(+v)&&typeof v!=='object');
   if(!numFields.length){el.innerHTML=`<span class="ft-empty">${lang==='zh'?'无数值字段':'No numeric fields'}</span>`;return;}
-  el.innerHTML=numFields.map(([k,v])=>{
+  const allChecked=numFields.every(([k])=>selectedFields.includes(k));
+  let html=`<div class="fc-toolbar"><label class="fc-item fc-all"><input type="checkbox" id="fc-select-all" ${allChecked?'checked':''} oninput="document.querySelectorAll('#field-checklist .fc-field input').forEach(cb=>cb.checked=this.checked)"><span>${lang==='zh'?'全选':'Select All'}</span></label><input type="text" id="fc-search" class="fc-search" placeholder="${lang==='zh'?'搜索字段...':'Search fields...'}" oninput="filterFieldChecklist(this.value)"></div>`;
+  html+=`<div class="fc-list">`;
+  html+=numFields.map(([k,v])=>{
     const checked=selectedFields.includes(k)?'checked':'';
-    return `<label class="fc-item"><input type="checkbox" value="${esc(k)}" ${checked}><span>${esc(k)}</span><span class="fc-val">${v}</span></label>`;
+    return `<label class="fc-item fc-field"><input type="checkbox" value="${esc(k)}" ${checked}><span>${esc(k)}</span><span class="fc-val">${v}</span></label>`;
   }).join('');
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+function filterFieldChecklist(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('#field-checklist .fc-field').forEach(item=>{
+    const name=item.querySelector('span').textContent.toLowerCase();
+    item.style.display=name.includes(q)?'':'none';
+  });
 }
 function closeModal(){$('modal-overlay').classList.add('hidden');S.editId=null;}
 function saveChart(){
   // Read selected fields from checklist
-  const checkedFields=[...document.querySelectorAll('#field-checklist input[type=checkbox]:checked')].map(cb=>cb.value);
-  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:checkedFields.join(','),timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
+  const checkedFields=[...document.querySelectorAll('#field-checklist input[type=checkbox]:checked')].map(cb=>cb.value).filter(Boolean);
+  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:checkedFields,timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
   if(!cfg.topic){toast(t('mqttTopic')+' required','error');return;}
   if(cfg.mode==='auto'&&!checkedFields.length){toast(lang==='zh'?'请至少选择一个字段':'Select at least one field','warn');return;}
   if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey,oldFF=S.charts[i].fieldsFilter.join(',');Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey||oldFF!==checkedFields.join(',')){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderGrid();}}
@@ -907,9 +898,8 @@ function saveChart(){
 function $(id){return document.getElementById(id);}
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
 function fmt(n){if(n==null||n==='—')return'—';if(Number.isInteger(n))return n.toLocaleString();return(+n).toFixed(2);}
-function clearAll(){Object.keys(S.data).forEach(id=>{recycleData(+id);S.data[id]={fields:{}};_upd(+id);});if(S.maxId!=null)renderBI();}
 function togglePanel(el){el.classList.toggle('collapsed');}
-window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;window.toggleFieldByPath=toggleFieldByPath;
+window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;window.toggleFieldByPath=toggleFieldByPath;window.filterFieldChecklist=filterFieldChecklist;
 
 /* Quick-add chart for a single field from JSON preview */
 function quickAddField(topic,fieldPath,suggestedSubKey){
