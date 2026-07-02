@@ -627,24 +627,28 @@ function renderLimitPopover(id){
   const pop=$(`lp-${id}`);if(!pop)return;
   const L=ch.limits;
   pop.innerHTML=`<div class="lp-head">${t('limits')} <button class="lp-close" onclick="toggleLimits(${id})">✕</button></div>
-<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.upper.on?'checked':''} onchange="setLimit(${id},'upper','on',this.checked)"> ${t('upperLimit')}</label><input type="number" class="lp-val" value="${L.upper.value}" onchange="setLimit(${id},'upper','value',+this.value)"><input type="color" class="lp-col" value="${L.upper.color}" onchange="setLimit(${id},'upper','color',this.value)"><input class="lp-lbl" value="${esc(L.upper.label)}" placeholder="${t('limitLabel')}" onchange="setLimit(${id},'upper','label',this.value)"></div>
-<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.lower.on?'checked':''} onchange="setLimit(${id},'lower','on',this.checked)"> ${t('lowerLimit')}</label><input type="number" class="lp-val" value="${L.lower.value}" onchange="setLimit(${id},'lower','value',+this.value)"><input type="color" class="lp-col" value="${L.lower.color}" onchange="setLimit(${id},'lower','color',this.value)"><input class="lp-lbl" value="${esc(L.lower.label)}" placeholder="${t('limitLabel')}" onchange="setLimit(${id},'lower','label',this.value)"></div>`;
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.upper.on?'checked':''} oninput="setLimit(${id},'upper','on',this.checked)"> ${t('upperLimit')}</label><input type="number" class="lp-val" value="${L.upper.value}" oninput="setLimit(${id},'upper','value',+this.value)"><input type="color" class="lp-col" value="${L.upper.color}" oninput="setLimit(${id},'upper','color',this.value)"><input class="lp-lbl" value="${esc(L.upper.label)}" placeholder="${t('limitLabel')}" oninput="setLimit(${id},'upper','label',this.value)"></div>
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.lower.on?'checked':''} oninput="setLimit(${id},'lower','on',this.checked)"> ${t('lowerLimit')}</label><input type="number" class="lp-val" value="${L.lower.value}" oninput="setLimit(${id},'lower','value',+this.value)"><input type="color" class="lp-col" value="${L.lower.color}" oninput="setLimit(${id},'lower','color',this.value)"><input class="lp-lbl" value="${esc(L.lower.label)}" placeholder="${t('limitLabel')}" oninput="setLimit(${id},'lower','label',this.value)"></div>`;
 }
 
 function setLimit(id,which,prop,val){
   id=+id;
   const ch=S.charts.find(c=>c.id===id);if(!ch||!ch.limits)return;
   ch.limits[which][prop]=val;
-  // Update the chart to redraw limit lines
   try{if(S.inst[id])S.inst[id].update('none');}catch{}
+  try{if(S.maxId===id&&S.maxInst)S.maxInst.update('none');}catch{}
   save();
 }
 
 // Chart.js plugin to draw limit lines on canvas
 const limitPlugin={id:'limits',afterDraw:function(chart){
-  const cid=+(chart.canvas.id||'').replace('cv-','');
-  if(!cid)return;
-  const ch=S.charts.find(c=>c.id===cid);
+  const canvasId=chart.canvas.id||'';
+  let ch=null;
+  if(canvasId.startsWith('cv-')){
+    ch=S.charts.find(c=>c.id===+canvasId.replace('cv-',''));
+  }else if(canvasId==='bi-canvas'&&S.maxId!=null){
+    ch=S.charts.find(c=>c.id===S.maxId);
+  }
   if(!ch||!ch.limits)return;
   if(!ch.limits.upper.on&&!ch.limits.lower.on)return;
   const{ctx,chartArea:{top,bottom,left,right},scales}=chart;
