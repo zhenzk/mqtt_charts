@@ -19,8 +19,8 @@ const DEFAULT_TIME_RANGE = '5m';
 
 /* ─── i18n ─── */
 const I18N = {
-  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...',limits:'阈值线',upperLimit:'上限',lowerLimit:'下限',limitValue:'值',limitColor:'颜色',limitLabel:'标签',limitEnable:'开启',dataPath:'数据路径 (子对象)',dataPathHint:'如果 JSON 是嵌套结构，选择要监控的子对象'},
-  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...',limits:'Limits',upperLimit:'Upper',lowerLimit:'Lower',limitValue:'Value',limitColor:'Color',limitLabel:'Label',limitEnable:'Enable',dataPath:'Data Path (sub-object)',dataPathHint:'Select a sub-object if the JSON is nested'}
+  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...',limits:'阈值线',upperLimit:'上限',lowerLimit:'下限',limitValue:'值',limitColor:'颜色',limitLabel:'标签',limitEnable:'开启',dataPath:'数据路径 (子对象)',dataPathHint:'如果 JSON 是嵌套结构，选择要监控的子对象',probeTopic:'探测 Topic',probe:'探测',probeHint:'输入 topic 点击探测，查看返回的 JSON 结构',probing:'探测中...',probeSuccess:'已收到数据，查看 JSON 预览',probeFail:'5 秒内未收到消息'},
+  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...',limits:'Limits',upperLimit:'Upper',lowerLimit:'Lower',limitValue:'Value',limitColor:'Color',limitLabel:'Label',limitEnable:'Enable',dataPath:'Data Path (sub-object)',dataPathHint:'Select a sub-object if the JSON is nested',probeTopic:'Probe Topic',probe:'Probe',probeHint:'Enter topic, click probe to see JSON structure',probing:'Probing...',probeSuccess:'Data received, check JSON preview',probeFail:'No message in 5s'}
 };
 let lang='en';
 const t=k=>(I18N[lang]||{})[k]||k;
@@ -186,6 +186,28 @@ async function testConnection(){
   toast(lang==='zh'?'已连接，演示数据运行中':'Connected, demo running','success');
 }
 
+/* ─── Probe Topic: subscribe, wait for 1 message, show in JSON preview ─── */
+async function probeTopic(){
+  if(!S.connected){toast(lang==='zh'?'请先连接':'Connect first','warn');return;}
+  const topic=$('probe-topic').value.trim();
+  if(!topic){toast(lang==='zh'?'请输入 topic':'Enter a topic','warn');return;}
+  const btn=$('probe-btn');
+  btn.disabled=true;btn.textContent=t('probing');
+  // Subscribe
+  await window.mqttAPI.subscribe(topic);
+  S.selectedJsonTopic=topic;
+  // Wait up to 5s for a message
+  let got=false;
+  const check=()=>{if(S.lastPayloadByTopic[topic]){got=true;renderJsonPreview();}};
+  const interval=setInterval(check,200);
+  setTimeout(()=>{
+    clearInterval(interval);
+    btn.disabled=false;btn.textContent=t('probe');
+    if(got){toast(t('probeSuccess'),'success');}
+    else{toast(t('probeFail'),'warn');}
+  },5000);
+}
+
 /* ─── MQTT ─── */
 function setupMQTT(){
   window.mqttAPI.onMessage(({topic,payload})=>{
@@ -316,11 +338,13 @@ function onStatus(status,msg){
     case 'connected':
       S.connected=true;$('disconnect-btn').disabled=false;
       dot.className='status-dot on';st.textContent=t('connected');st.style.color='var(--success)';
+      $('probe-group').style.display='';
       subAll();
       break;
     case 'disconnected':
       S.connected=false;$('disconnect-btn').disabled=true;
       dot.className='status-dot off';st.textContent=t('disconnected');st.style.color='var(--text-3)';
+      $('probe-group').style.display='none';
       S.demoOn=false;updateDemoBtn();hideDemoBadge();
       break;
     case 'offline':st.textContent=t('offline');st.style.color='var(--warning)';dot.className='status-dot wait';break;
@@ -338,6 +362,8 @@ function setupEv(){
   $('connect-btn').onclick=doConnect;
   $('disconnect-btn').onclick=async()=>{await window.mqttAPI.demoStop();S.demoOn=false;updateDemoBtn();hideDemoBadge();window.mqttAPI.disconnect();};
   $('test-btn').onclick=testConnection;
+  $('probe-btn').onclick=probeTopic;
+  $('probe-topic').addEventListener('keydown',e=>{if(e.key==='Enter')probeTopic();});
   $('add-chart-btn').onclick=()=>openModal();
   $('modal-save').onclick=saveChart;
   $('modal-cancel').onclick=closeModal;

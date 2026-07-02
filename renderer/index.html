@@ -50,6 +50,16 @@
             <button id="disconnect-btn" class="btn btn-ghost" disabled data-i18n="disconnect">Disconnect</button>
           </div>
           <button id="test-btn" class="btn btn-ghost btn-block" data-i18n="testConnection">⚡ Test Connection & Demo</button>
+          <div id="probe-group" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div class="field">
+              <label data-i18n="probeTopic">探测 Topic</label>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="probe-topic" placeholder="sensor/data" style="flex:1" />
+                <button id="probe-btn" class="btn btn-mini btn-primary" data-i18n="probe">探测</button>
+              </div>
+              <span class="hint" data-i18n="probeHint">输入 topic 点击探测，查看返回的 JSON 结构</span>
+            </div>
+          </div>
           <div id="status-text" class="status-text">—</div>
         </div>
       </div>
