@@ -24,10 +24,10 @@ const I18N = {
 };
 let lang='en';
 const t=k=>(I18N[lang]||{})[k]||k;
-function applyLang(){try{document.querySelectorAll('[data-i18n]').forEach(e=>{const v=t(e.dataset.i18n);if(v==null)return;if(v.includes('<'))e.innerHTML=v;else e.textContent=v;});$('lang-toggle').textContent=lang==='zh'?'EN':'中';renderList();}catch(e){console.warn('lang:',e)}}
+function applyLang(){try{document.querySelectorAll('[data-i18n]').forEach(e=>{const v=t(e.dataset.i18n);if(v==null)return;if(v.includes('<'))e.innerHTML=v;else e.textContent=v;});$('lang-toggle').textContent=lang==='zh'?'EN':'中';}catch(e){console.warn('lang:',e)}}
 
 /* ─── State ─── */
-const S={connected:false,connecting:false,charts:[],data:{},inst:{},maxId:null,maxInst:null,nextId:1,editId:null,demoOn:false,lastJson:null,jsonCount:0,selectedId:null,lastPayloadByTopic:{},selectedJsonTopic:null,gridGap:12,panelH:{connection:null,charts:null,json:null},msgRate:0,msgRateTimer:0,totalPoints:0};
+const S={connected:false,connecting:false,charts:[],data:{},inst:{},maxId:null,maxInst:null,nextId:1,editId:null,lastJson:null,jsonCount:0,selectedId:null,lastPayloadByTopic:{},selectedJsonTopic:null,gridGap:12,panelH:{connection:null,json:null},msgRate:0,msgRateTimer:0,totalPoints:0};
 let dragSrc=null;
 
 /* ─── Toast system ─── */
@@ -72,7 +72,7 @@ function queueUp(id){if(document.hidden)return;uq.add(id);if(!rafId){rafId=reque
 
 /* ─── Storage ─── */
 function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits,subKey:c.subKey||''}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
-function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,charts:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||''});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
+function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||''});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
 
 function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap+'px';}
 function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   try{
   if(typeof Chart==='undefined'){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0b0f17;color:#ef4444;font-family:sans-serif;flex-direction:column;gap:12px"><h2>Chart.js failed to load</h2><p style="color:#94a3b8;font-size:13px">Check network connection or reload</p></div>`;return;}
   load();setupEv();applyLang();renderGrid();setupMQTT();setupPanelResizers();
-  $('gap-slider').value=S.gridGap;$('gap-val').textContent=S.gridGap;applyGridGap();
+  applyGridGap();
   applyPanelHeights();
   setInterval(pruneAll,5000);
   setInterval(()=>{
@@ -109,7 +109,7 @@ function startPanelResize(e,rz){
   const aboveH=above.offsetHeight;
   const belowH=below.offsetHeight;
   const startY=e.clientY;
-  const isTop=rz.dataset.below==='charts';
+    const isTop=rz.dataset.below==='json';
   rz.classList.add('dragging');
   document.body.style.cursor='ns-resize';
   document.body.style.userSelect='none';
@@ -154,36 +154,6 @@ function applyPanelHeights(){
       if(el)el.style.flex=`0 0 ${h}px`;
     }
   }
-}
-
-/* ─── Test Connection: one-click connect + demo + JSON preview ─── */
-async function testConnection(){
-  if(S.connected){
-    // Already connected — just toggle demo
-    toggleDemo();return;
-  }
-  const url=$('broker-url').value.trim()||DEMO_BROKER;
-  const st=$('status-text');
-  st.textContent=t('connecting');st.style.color='var(--warning)';
-  $('connect-btn').disabled=true;S.connecting=true;
-  $('status-dot').className='status-dot wait';
-  $('test-btn').disabled=true;
-  const r=await window.mqttAPI.connect({url,username:$('mqtt-user').value.trim()||undefined,password:$('mqtt-pass').value.trim()||undefined,clientId:$('mqtt-cid').value.trim()||undefined});
-  $('test-btn').disabled=false;
-  if(!r.success){
-    S.connecting=false;$('connect-btn').disabled=false;
-    $('status-dot').className='status-dot err';
-    st.textContent=t('connectionFailed')+(r.error?': '+r.error:'');st.style.color='var(--error)';
-    toast(t('connectionFailed'),'error');
-    return;
-  }
-  // Connected! Now create demo chart + start publisher
-  if(!S.charts.some(c=>c.topic===DEMO_TOPIC)){
-    addChart({title:lang==='zh'?'传感器演示':'Sensor Demo',topic:DEMO_TOPIC,mode:'auto'});
-  }
-  await window.mqttAPI.demoStart();
-  S.demoOn=true;updateDemoBtn();showDemoBadge();
-  toast(lang==='zh'?'已连接，演示数据运行中':'Connected, demo running','success');
 }
 
 /* ─── Probe Topic: subscribe, wait for 1 message, show in JSON preview ─── */
@@ -345,7 +315,6 @@ function onStatus(status,msg){
       S.connected=false;$('disconnect-btn').disabled=true;
       dot.className='status-dot off';st.textContent=t('disconnected');st.style.color='var(--text-3)';
       $('probe-group').style.display='none';
-      S.demoOn=false;updateDemoBtn();hideDemoBadge();
       break;
     case 'offline':st.textContent=t('offline');st.style.color='var(--warning)';dot.className='status-dot wait';break;
     case 'error':st.textContent=t('connectionFailed')+(msg?': '+msg:'');st.style.color='var(--error)';dot.className='status-dot err';break;
@@ -360,19 +329,14 @@ function setupEv(){
   $('btn-max').onclick=()=>window.winAPI.toggleMaximize();
   $('lang-toggle').onclick=()=>{lang=lang==='zh'?'en':'zh';applyLang();save();};
   $('connect-btn').onclick=doConnect;
-  $('disconnect-btn').onclick=async()=>{await window.mqttAPI.demoStop();S.demoOn=false;updateDemoBtn();hideDemoBadge();window.mqttAPI.disconnect();};
-  $('test-btn').onclick=testConnection;
+  $('disconnect-btn').onclick=async()=>{window.mqttAPI.disconnect();};
   $('probe-btn').onclick=probeTopic;
   $('probe-topic').addEventListener('keydown',e=>{if(e.key==='Enter')probeTopic();});
-  $('add-chart-btn').onclick=()=>openModal();
   $('modal-save').onclick=saveChart;
   $('modal-cancel').onclick=closeModal;
   $('modal-close').onclick=closeModal;
-  $('clear-data-btn').onclick=clearAll;
-  $('demo-btn').onclick=toggleDemo;
   $('sidebar-hide').onclick=()=>{document.getElementById('app').classList.add('sb-hidden');};
   $('sidebar-show').onclick=()=>{document.getElementById('app').classList.remove('sb-hidden');};
-  $('gap-slider').oninput=e=>{const v=+e.target.value;$('gap-val').textContent=v;setGridGap(v);};
   $('bi-close').onclick=closeBI;
   $('bi-back').onclick=closeBI;
   $('bi-export').onclick=exportCSV;
@@ -419,32 +383,6 @@ async function doConnect(){
 function subAll(){const ts=new Set();S.charts.forEach(c=>{if(c.topic)ts.add(c.topic);});ts.forEach(tp=>window.mqttAPI.subscribe(tp));}
 function unsubIfNeeded(topic){if(!S.charts.some(c=>c.topic===topic))window.mqttAPI.unsubscribe(topic);}
 
-/* ─── Demo Mode (real MQTT publisher in main process) ─── */
-async function toggleDemo(){
-  if(S.demoOn){
-    await window.mqttAPI.demoStop();
-    S.demoOn=false;updateDemoBtn();hideDemoBadge();
-  }else{
-    if(!S.connected){toast(lang==='zh'?'请先连接 MQTT broker':'Connect to MQTT broker first','warn');return;}
-    if(!S.charts.some(c=>c.topic===DEMO_TOPIC)){
-      addChart({title:lang==='zh'?'传感器演示':'Sensor Demo',topic:DEMO_TOPIC,mode:'auto'});
-    }
-    const r=await window.mqttAPI.demoStart();
-    if(r.success){S.demoOn=true;updateDemoBtn();showDemoBadge();}
-  }
-}
-
-function updateDemoBtn(){
-  const b=$('demo-btn');
-  if(S.demoOn){b.textContent=lang==='zh'?'⏹ 停止演示':'⏹ Stop Demo';b.classList.add('btn-primary');b.classList.remove('btn-ghost');}
-  else{b.textContent=t('startDemo');b.classList.remove('btn-primary');b.classList.add('btn-ghost');}
-}
-
-function showDemoBadge(){
-  let b=$('demo-badge');if(!b){b=document.createElement('div');b.id='demo-badge';b.className='demo-badge';b.innerHTML=`<span class="ddot"></span><span>${t('demoRunning')}</span>`;document.body.appendChild(b);}
-}
-function hideDemoBadge(){const b=$('demo-badge');if(b)b.remove();}
-
 /* ─── Data Processing ─── */
 function processMsg(ch,payload){
   if(!S.data[ch.id])S.data[ch.id]={fields:{}};
@@ -470,7 +408,7 @@ function processMsg(ch,payload){
       if(a.length>ch.maxPoints){const old=a.shift();if(old)recyclePt(old);}
     }
   }
-  if(nf){renderGrid();renderList();}
+  if(nf){renderGrid();}
   pruneData(ch.id);
   queueUp(ch.id);
 }
@@ -522,7 +460,7 @@ function addChart(cfg){
   const ff=(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
   const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS)),subKey:cfg.subKey||''};
   S.charts.push(ch);S.data[id]={fields:{}};
-  renderList();renderGrid();
+  renderGrid();
   if(S.connected&&ch.topic)window.mqttAPI.subscribe(ch.topic);
   save();return ch;
 }
@@ -536,16 +474,16 @@ function removeChart(id){
     if(S.inst[id]){S.inst[id].destroy();delete S.inst[id];}
     if(topic)unsubIfNeeded(topic);
     if(S.maxId===id)closeBI();if(S.selectedId===id)S.selectedId=null;
-    renderList();renderGrid();save();
+    renderGrid();save();
   },180);}else{
     S.charts=S.charts.filter(c=>c.id!==id);recycleData(id);delete S.data[id];
     if(S.inst[id]){S.inst[id].destroy();delete S.inst[id];}
     if(topic)unsubIfNeeded(topic);
     if(S.maxId===id)closeBI();if(S.selectedId===id)S.selectedId=null;
-    renderList();renderGrid();save();
+    renderGrid();save();
   }
 }
-function togglePause(id){const ch=S.charts.find(c=>c.id===id);if(ch){ch.paused=!ch.paused;renderList();save();}}
+function togglePause(id){const ch=S.charts.find(c=>c.id===id);if(ch){ch.paused=!ch.paused;save();}}
 
 /* ─── Render Grid ─── */
 function renderGrid(){
@@ -604,10 +542,10 @@ function renameChart(id){
   const el=$(`ct-${id}`);if(!el)return;
   el.contentEditable=true;el.focus();
   const range=document.createRange();range.selectNodeContents(el);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
-  el.addEventListener('blur',()=>{el.contentEditable=false;const ch=S.charts.find(c=>c.id===id);if(ch){ch.title=el.textContent.trim()||`Chart ${id}`;el.textContent=ch.title;renderList();save();}},{once:true});
+  el.addEventListener('blur',()=>{el.contentEditable=false;const ch=S.charts.find(c=>c.id===id);if(ch){ch.title=el.textContent.trim()||`Chart ${id}`;el.textContent=ch.title;save();}},{once:true});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.textContent=S.charts.find(c=>c.id===id)?.title||'';el.blur();}});
 }
-function reorder(f,t){const fi=S.charts.findIndex(c=>c.id===f),ti=S.charts.findIndex(c=>c.id===t);if(fi===-1||ti===-1)return;const[m]=S.charts.splice(fi,1);S.charts.splice(ti,0,m);renderList();renderGrid();save();}
+function reorder(f,t){const fi=S.charts.findIndex(c=>c.id===f),ti=S.charts.findIndex(c=>c.id===t);if(fi===-1||ti===-1)return;const[m]=S.charts.splice(fi,1);S.charts.splice(ti,0,m);renderGrid();save();}
 
 /* ─── Chart.js with gradient fills & bezier ─── */
 function makeGradient(ctx,color){
@@ -838,24 +776,6 @@ function toggleField(chartId,field){
 }
 
 /* ─── Sidebar List ─── */
-function renderList(){
-  const el=$('chart-list');
-  if(!S.charts.length){el.innerHTML=`<div style="padding:8px;font-size:11px;color:var(--text-4);text-align:center">—</div>`;return;}
-  el.innerHTML=S.charts.map(ch=>{
-    const d=S.data[ch.id],n=d?Object.values(d.fields).reduce((s,a)=>s+a.length,0):0;
-    const color=ch.mode==='manual'?ch.color:PALETTE[0];
-    const badge=ch.paused?t('paused'):(ch.mode==='auto'?t('auto'):t('manual'));
-    return `<div class="chart-item" draggable="true" data-id="${ch.id}"><span class="cbar" style="background:${color}"></span><div class="info"><div class="nm">${esc(ch.title)}</div><div class="tp">${esc(ch.topic)}</div></div><span class="badge">${badge}</span><span style="font-size:10px;color:var(--text-4)">${n}</span><button class="del" onclick="event.stopPropagation();removeChart(${ch.id})">✕</button></div>`;
-  }).join('');
-  el.querySelectorAll('.chart-item').forEach(item=>{
-    item.addEventListener('dragstart',e=>{dragSrc=+item.dataset.id;item.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    item.addEventListener('dragend',()=>{item.classList.remove('dragging');el.querySelectorAll('.chart-item').forEach(c=>c.classList.remove('drag-over'));});
-    item.addEventListener('dragover',e=>{e.preventDefault();if(dragSrc!==+item.dataset.id)item.classList.add('drag-over');});
-    item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
-    item.addEventListener('drop',()=>{item.classList.remove('drag-over');if(dragSrc&&dragSrc!==+item.dataset.id)reorder(dragSrc,+item.dataset.id);});
-  });
-}
-
 /* ─── BI Dashboard ─── */
 function openBI(id){S.maxId=id;const ch=S.charts.find(c=>c.id===id);if(!ch)return;$('bi-title').textContent=ch.title;$('bi-sub').textContent=ch.topic;$('bi-view').classList.remove('hidden');pruneData(id);renderBI();}
 function renderBI(){
@@ -949,7 +869,7 @@ function closeModal(){$('modal-overlay').classList.add('hidden');S.editId=null;}
 function saveChart(){
   const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:$('chart-fields-filter').value.trim(),timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
   if(!cfg.topic){toast(t('mqttTopic')+' required','error');return;}
-  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey;Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderList();renderGrid();}}
+  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey;Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderGrid();}}
   else addChart(cfg);
   closeModal();save();
 }

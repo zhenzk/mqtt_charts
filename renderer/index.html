@@ -49,7 +49,6 @@
             <button id="connect-btn" class="btn btn-primary" data-i18n="connect">Connect</button>
             <button id="disconnect-btn" class="btn btn-ghost" disabled data-i18n="disconnect">Disconnect</button>
           </div>
-          <button id="test-btn" class="btn btn-ghost btn-block" data-i18n="testConnection">⚡ Test Connection & Demo</button>
           <div id="probe-group" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
             <div class="field">
               <label data-i18n="probeTopic">探测 Topic</label>
@@ -63,27 +62,9 @@
           <div id="status-text" class="status-text">—</div>
         </div>
       </div>
-      <div class="panel-resizer" data-above="connection" data-below="charts"></div>
+      <div class="panel-resizer" data-above="connection" data-below="json"></div>
 
-      <div class="nav-sec nav-charts" id="panel-charts" data-panel="charts">
-        <div class="nav-head">
-          <span data-i18n="charts">Charts</span>
-          <button id="add-chart-btn" class="btn btn-mini btn-primary">+</button>
-        </div>
-        <div class="nav-body" id="panel-charts-body">
-          <div id="chart-list" class="chart-list"></div>
-          <div class="gap-ctrl">
-            <label data-i18n="spacing">Spacing</label>
-            <input type="range" id="gap-slider" min="0" max="40" value="12" />
-            <span id="gap-val">12</span>
-          </div>
-          <button id="demo-btn" class="btn btn-mini btn-ghost btn-block" data-i18n="startDemo">▶ Start Demo Data</button>
-          <button id="clear-data-btn" class="btn btn-mini btn-ghost btn-block" data-i18n="clearData">Clear Data</button>
-        </div>
-      </div>
-      <div class="panel-resizer" data-above="charts" data-below="json"></div>
-
-      <div class="nav-sec nav-json" id="panel-json" data-panel="json">
+      <div class="nav-sec nav-json" id="panel-json" data-panel="json" style="flex:1">
         <div class="nav-head" onclick="togglePanel(this)">
           <span data-i18n="jsonPreview">JSON Preview</span>
           <svg class="chev" viewBox="0 0 24 24" width="13" height="13"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
@@ -111,8 +92,7 @@
     <div id="empty-state" class="empty">
       <svg viewBox="0 0 96 64" width="96" height="56" class="empty-illust"><path d="M8 52l16-22 12 14 16-24 12 16 24-18" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="52" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="24" cy="30" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="36" cy="44" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="52" cy="20" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="64" cy="36" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="88" cy="18" r="2.5" fill="currentColor" opacity="0.3"/></svg>
       <h2 data-i18n="noChartsTitle">No Charts Yet</h2>
-      <p data-i18n="noChartsDesc">Connect to MQTT, then create a chart.</p>
-      <p class="muted" data-i18n="orTest">Or click <strong>Test Connection & Demo</strong> to see it live.</p>
+      <p data-i18n="noChartsDesc">Connect MQTT → 探测 Topic → 勾选字段生成图表</p>
     </div>
   </main>
 

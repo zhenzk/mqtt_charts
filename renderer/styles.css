@@ -115,8 +115,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','P
 
 /* ─── Nav Sections ─── */
 .nav-sec{border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;flex-direction:column}
-.nav-charts{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:80px}
-.nav-json{overflow:hidden;display:flex;flex-direction:column;min-height:60px}
+.nav-json{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:60px}
 
 /* Panel resizer — drag to resize panel heights */
 .panel-resizer{height:5px;flex-shrink:0;background:transparent;cursor:ns-resize;position:relative;z-index:10;transition:background .15s}
