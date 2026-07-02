@@ -583,10 +583,10 @@ function buildDS(ch,fields,data,ctx){
   const ds=[];
   if(ch.mode==='manual'){
     const c=ch.color;
-    ds.push({label:ch.title,data:data?.fields._v||[],borderColor:c,backgroundColor:ctx?makeGradient(ctx,c):c+'15',borderWidth:2.5,fill:true,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2});
+    ds.push({label:ch.title,data:data?.fields._v||[],borderColor:c,backgroundColor:ctx?makeGradient(ctx,c):c+'15',borderWidth:2.5,fill:true,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,hidden:ch.hiddenFields.includes('_v')});
   }else{
     fields.forEach((f,i)=>{const ci=i%PALETTE.length,c=PALETTE[ci];
-      ds.push({label:f,data:data?.fields[f]||[],borderColor:c,backgroundColor:ctx?makeGradient(ctx,c):c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2});
+      ds.push({label:f,data:data?.fields[f]||[],borderColor:c,backgroundColor:ctx?makeGradient(ctx,c):c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,hidden:ch.hiddenFields.includes(f)});
     });
     if(!ds.length)ds.push({label:ch.title,data:[],borderColor:PALETTE[0],backgroundColor:PALETTE[0]+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0});
   }
