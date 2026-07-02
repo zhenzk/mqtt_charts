@@ -71,8 +71,8 @@ let jsonPreviewTimer=null;
 function queueUp(id){if(document.hidden)return;uq.add(id);if(!rafId){rafId=requestAnimationFrame(()=>{uq.forEach(id=>_upd(id));uq.clear();rafId=null;if(S.maxId!==null)updBI();});}}
 
 /* ─── Storage ─── */
-function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits,subKey:c.subKey||''}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
-function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||''});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
+function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits,subKey:c.subKey||'',hiddenFields:c.hiddenFields||[]}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
+function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||'',hiddenFields:ch.hiddenFields||[]});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
 
 function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap+'px';}
 function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
@@ -271,33 +271,36 @@ function toggleFieldByPath(topic,path){
   // Find existing chart with same topic+subKey
   let ch=S.charts.find(c=>c.topic===topic&&c.subKey===subKey);
   if(!ch){
-    // Auto-create chart
-    const title=subKey?subKey.split('_').pop()||subKey:fieldName;
-    ch=addChart({title,topic,mode:'auto',fieldsFilter:fieldName,subKey});
-    S.selectedId=ch.id;
-    document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',+c.dataset.cid===ch.id));
-    toast(lang==='zh'?'已创建图表: '+title:'Created chart: '+title,'success',2000);
-  }else{
-    // Add field to existing chart if not already
-    const data=S.data[ch.id];
-    if(data.fields[fieldName]){
-      // Toggle visibility
-      const inst=S.inst[ch.id];
+    // No chart exists — prompt to create via modal
+    toast(lang==='zh'?'请先新建图表，选择该 topic 和子对象':'Create a chart first with this topic+subKey','warn',3000);
+    // Uncheck the checkbox since we're not adding
+    setTimeout(renderJsonPreview,10);
+    return;
+  }
+  // Chart exists — toggle field
+  const data=S.data[ch.id];
+  if(ch.fieldsFilter.includes(fieldName)){
+    // Field is in filter — toggle hidden
+    if(ch.hiddenFields.includes(fieldName)){
+      ch.hiddenFields=ch.hiddenFields.filter(f=>f!==fieldName);
+    }else{
+      ch.hiddenFields.push(fieldName);
+    }
+    // Apply to chart instance
+    const inst=S.inst[ch.id];
+    if(inst){
       const fields=Object.keys(data.fields);
       const dsIdx=fields.indexOf(fieldName);
-      if(inst&&inst.data.datasets[dsIdx]!==undefined){
-        inst.data.datasets[dsIdx].hidden=!inst.data.datasets[dsIdx].hidden;
-        inst.update('none');
-      }
-    }else{
-      // Add to fieldsFilter
-      if(!ch.fieldsFilter.includes(fieldName))ch.fieldsFilter.push(fieldName);
-      toast(lang==='zh'?'已添加字段: '+fieldName:'Added: '+fieldName,'success',1500);
+      if(dsIdx>=0&&inst.data.datasets[dsIdx]){inst.data.datasets[dsIdx].hidden=ch.hiddenFields.includes(fieldName);inst.update('none');}
     }
     updLegend(ch.id);
     save();
+  }else{
+    // Field not in filter — add it
+    ch.fieldsFilter.push(fieldName);
+    toast(lang==='zh'?'已添加字段: '+fieldName:'Added: '+fieldName,'success',1500);
+    save();
   }
-  // Re-render to update checkbox states
   setTimeout(renderJsonPreview,50);
 }
 
@@ -332,6 +335,8 @@ function setupEv(){
   $('disconnect-btn').onclick=async()=>{window.mqttAPI.disconnect();};
   $('probe-btn').onclick=probeTopic;
   $('probe-topic').addEventListener('keydown',e=>{if(e.key==='Enter')probeTopic();});
+  $('add-chart-btn').onclick=()=>openModal();
+  $('empty-add-btn').onclick=()=>openModal();
   $('modal-save').onclick=saveChart;
   $('modal-cancel').onclick=closeModal;
   $('modal-close').onclick=closeModal;
@@ -402,7 +407,7 @@ function processMsg(ch,payload){
   if(dataObj&&typeof dataObj==='object'&&!Array.isArray(dataObj)){
     for(const[k,v]of Object.entries(dataObj)){
       const n=+v;if(isNaN(n))continue;
-      if(ch.fieldsFilter.length&&!ch.fieldsFilter.includes(k))continue;
+      if(!ch.fieldsFilter.includes(k))continue;
       if(!d.fields[k]){d.fields[k]=[];nf=true;}
       const a=d.fields[k];a.push(pt(now,n));
       if(a.length>ch.maxPoints){const old=a.shift();if(old)recyclePt(old);}
@@ -458,7 +463,7 @@ function stats(pts){
 function addChart(cfg){
   const id=S.nextId++;
   const ff=(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS)),subKey:cfg.subKey||''};
+  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS)),subKey:cfg.subKey||'',hiddenFields:cfg.hiddenFields||[]};
   S.charts.push(ch);S.data[id]={fields:{}};
   renderGrid();
   if(S.connected&&ch.topic)window.mqttAPI.subscribe(ch.topic);
@@ -598,8 +603,8 @@ function _upd(id){
       if(inst.data.datasets[0])inst.data.datasets[0].data=data.fields._v||[];
     }else{
       fields.forEach((f,i)=>{
-        if(i<inst.data.datasets.length){inst.data.datasets[i].label=f;inst.data.datasets[i].data=data.fields[f]||[];}
-        else{const ci=i%PALETTE.length,c=PALETTE[ci];inst.data.datasets.push({label:f,data:data.fields[f]||[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2});}
+        if(i<inst.data.datasets.length){inst.data.datasets[i].label=f;inst.data.datasets[i].data=data.fields[f]||[];inst.data.datasets[i].hidden=ch.hiddenFields.includes(f);}
+        else{const ci=i%PALETTE.length,c=PALETTE[ci];inst.data.datasets.push({label:f,data:data.fields[f]||[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:c,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,hidden:ch.hiddenFields.includes(f)});}
       });
       while(inst.data.datasets.length>Math.max(1,fields.length))inst.data.datasets.pop();
       if(!inst.data.datasets.length){const c=PALETTE[0];inst.data.datasets.push({label:ch.title,data:[],borderColor:c,backgroundColor:c+'12',borderWidth:2,fill:false,tension:0.4,pointRadius:0});}
@@ -758,16 +763,20 @@ function toggleField(chartId,field){
   const ch=S.charts.find(c=>c.id===chartId),data=S.data[chartId];
   if(!ch||!data)return;
   if(data.fields[field]){
-    // Has data → toggle visibility
     const inst=S.inst[chartId];
-    const fields=ch.mode==='manual'?['_v']:Object.keys(data.fields);
+    const fields=Object.keys(data.fields);
     const dsIdx=fields.indexOf(field);
     if(inst&&inst.data.datasets[dsIdx]!==undefined){
       inst.data.datasets[dsIdx].hidden=!inst.data.datasets[dsIdx].hidden;
+      // Persist hidden state
+      if(inst.data.datasets[dsIdx].hidden){
+        if(!ch.hiddenFields.includes(field))ch.hiddenFields.push(field);
+      }else{
+        ch.hiddenFields=ch.hiddenFields.filter(f=>f!==field);
+      }
       inst.update('none');
     }
   }else{
-    // No data → add to fieldsFilter to start collecting
     if(!ch.fieldsFilter.includes(field))ch.fieldsFilter.push(field);
   }
   updLegend(chartId);
@@ -845,8 +854,8 @@ function openModal(editId){
   S.editId=editId||null;
   $('modal-title').textContent=editId?t('editChart'):t('addChart');
   const isM=editId?(S.charts.find(c=>c.id===editId)?.mode==='manual'):false;
-  if(editId){const c=S.charts.find(c=>c.id===editId);if(c){$('chart-title').value=c.title;$('chart-topic').value=c.topic;$('chart-mode').value=c.mode;$('chart-expression').value=c.expression;$('chart-maxpoints').value=c.maxPoints;$('chart-color').value=c.color;$('chart-ylabel').value=c.yLabel||'';$('chart-fields-filter').value=(c.fieldsFilter||[]).join(', ');$('chart-timerange').value=c.timeRange||DEFAULT_TIME_RANGE;populateSubKeys(c.topic,c.subKey||'');}}
-  else{$('chart-title').value='';$('chart-topic').value='';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-fields-filter').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;populateSubKeys('','');}
+  if(editId){const c=S.charts.find(c=>c.id===editId);if(c){$('chart-title').value=c.title;$('chart-topic').value=c.topic;$('chart-mode').value=c.mode;$('chart-expression').value=c.expression;$('chart-maxpoints').value=c.maxPoints;$('chart-color').value=c.color;$('chart-ylabel').value=c.yLabel||'';$('chart-timerange').value=c.timeRange||DEFAULT_TIME_RANGE;populateSubKeys(c.topic,c.subKey||'');populateFieldChecklist(c.topic,c.subKey||'',c.fieldsFilter||[]);}}
+  else{$('chart-title').value='';$('chart-topic').value='';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;populateSubKeys('','');populateFieldChecklist('','',[]);}
   $('expression-group').style.display=isM?'':'none';$('color-group').style.display=isM?'':'none';$('fields-filter-group').style.display=isM?'none':'';
   $('modal-overlay').classList.remove('hidden');setTimeout(()=>$('chart-title').focus(),80);
 }
@@ -864,12 +873,32 @@ function populateSubKeys(topic,selected){
     }
   }
   sel.innerHTML=html;
+  // When subKey changes, refresh field checklist
+  sel.onchange=()=>populateFieldChecklist($('chart-topic').value.trim(),sel.value,[]);
+}
+function populateFieldChecklist(topic,subKey,selectedFields){
+  const el=$('field-checklist');if(!el)return;
+  if(!topic){el.innerHTML=`<span class="ft-empty">${lang==='zh'?'先填 topic 并探测':'Enter topic and probe first'}</span>`;return;}
+  const last=S.lastPayloadByTopic[topic];
+  if(!last){el.innerHTML=`<span class="ft-empty">${lang==='zh'?'未收到数据，请先探测该 topic':'No data, probe the topic first'}</span>`;return;}
+  let obj=last;
+  if(subKey){obj=last[subKey];if(!obj){el.innerHTML=`<span class="ft-empty">${lang==='zh'?'该子对象无数据':'No data for this sub-object'}</span>`;return;}}
+  if(!obj||typeof obj!=='object'||Array.isArray(obj)){el.innerHTML=`<span class="ft-empty">—</span>`;return;}
+  const numFields=Object.entries(obj).filter(([,v])=>!isNaN(+v)&&typeof v!=='object');
+  if(!numFields.length){el.innerHTML=`<span class="ft-empty">${lang==='zh'?'无数值字段':'No numeric fields'}</span>`;return;}
+  el.innerHTML=numFields.map(([k,v])=>{
+    const checked=selectedFields.includes(k)?'checked':'';
+    return `<label class="fc-item"><input type="checkbox" value="${esc(k)}" ${checked}><span>${esc(k)}</span><span class="fc-val">${v}</span></label>`;
+  }).join('');
 }
 function closeModal(){$('modal-overlay').classList.add('hidden');S.editId=null;}
 function saveChart(){
-  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:$('chart-fields-filter').value.trim(),timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
+  // Read selected fields from checklist
+  const checkedFields=[...document.querySelectorAll('#field-checklist input[type=checkbox]:checked')].map(cb=>cb.value);
+  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:checkedFields.join(','),timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
   if(!cfg.topic){toast(t('mqttTopic')+' required','error');return;}
-  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey;Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderGrid();}}
+  if(cfg.mode==='auto'&&!checkedFields.length){toast(lang==='zh'?'请至少选择一个字段':'Select at least one field','warn');return;}
+  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey,oldFF=S.charts[i].fieldsFilter.join(',');Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey||oldFF!==checkedFields.join(',')){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderGrid();}}
   else addChart(cfg);
   closeModal();save();
 }

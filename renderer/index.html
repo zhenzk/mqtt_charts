@@ -88,11 +88,15 @@
     </div>
 
   <main class="main">
+    <div class="main-toolbar">
+      <button id="add-chart-btn" class="btn btn-primary btn-mini">+ 新建图表 / New Chart</button>
+    </div>
     <div id="charts-container" class="grid"></div>
     <div id="empty-state" class="empty">
       <svg viewBox="0 0 96 64" width="96" height="56" class="empty-illust"><path d="M8 52l16-22 12 14 16-24 12 16 24-18" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="52" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="24" cy="30" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="36" cy="44" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="52" cy="20" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="64" cy="36" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="88" cy="18" r="2.5" fill="currentColor" opacity="0.3"/></svg>
       <h2 data-i18n="noChartsTitle">No Charts Yet</h2>
-      <p data-i18n="noChartsDesc">Connect MQTT → 探测 Topic → 勾选字段生成图表</p>
+      <p data-i18n="noChartsDesc">Connect MQTT → 探测 Topic → 新建图表 → 选择字段</p>
+      <button id="empty-add-btn" class="btn btn-primary" style="margin-top:16px" data-i18n="addChart">新建图表 / New Chart</button>
     </div>
   </main>
 
@@ -124,9 +128,8 @@
       <div class="field"><label data-i18n="chartMode">Mode</label><select id="chart-mode"><option value="auto" data-i18n="autoMode">Auto Multi-Line</option><option value="manual" data-i18n="manualMode">Custom Expression</option></select></div>
       <div class="field" id="expression-group"><label data-i18n="expression">Value Expression</label><input type="text" id="chart-expression" value="data.value" /><span class="hint" data-i18n="expressionHint">Use data for the JSON</span></div>
       <div class="field" id="fields-filter-group">
-        <label data-i18n="fieldsFilter">Fields Filter <span class="opt">(optional)</span></label>
-        <input type="text" id="chart-fields-filter" placeholder="temperature, humidity" />
-        <span class="hint" data-i18n="fieldsFilterHint">Comma-separated. Empty = show all numeric fields.</span>
+        <label data-i18n="fieldsFilter">选择字段 <span class="opt">(只显示勾选的字段)</span></label>
+        <div id="field-checklist" class="field-checklist"></div>
       </div>
       <div class="field-row">
         <div class="field flex-1"><label data-i18n="maxPoints">Max Points</label><input type="number" id="chart-maxpoints" value="10000" min="100" max="100000" /></div>
