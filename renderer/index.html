@@ -129,7 +129,8 @@
     <div class="modal-head"><h2 id="modal-title" data-i18n="addChart">Add Chart</h2><button id="modal-close" class="icon-btn">✕</button></div>
     <div class="modal-body">
       <div class="field"><label data-i18n="chartTitle">Chart Title</label><input type="text" id="chart-title" placeholder="Sensors" /></div>
-      <div class="field"><label data-i18n="mqttTopic">MQTT Topic</label><input type="text" id="chart-topic" placeholder="sensor/data" /></div>
+        <div class="field"><label data-i18n="mqttTopic">MQTT Topic</label><input type="text" id="chart-topic" placeholder="sensor/data" /></div>
+        <div class="field" id="subkey-group"><label data-i18n="dataPath">Data Path (子对象)</label><select id="chart-subkey"><option value="">— Top Level —</option></select><span class="hint" data-i18n="dataPathHint">Select a sub-object if the JSON is nested</span></div>
       <div class="field"><label data-i18n="chartMode">Mode</label><select id="chart-mode"><option value="auto" data-i18n="autoMode">Auto Multi-Line</option><option value="manual" data-i18n="manualMode">Custom Expression</option></select></div>
       <div class="field" id="expression-group"><label data-i18n="expression">Value Expression</label><input type="text" id="chart-expression" value="data.value" /><span class="hint" data-i18n="expressionHint">Use data for the JSON</span></div>
       <div class="field" id="fields-filter-group">

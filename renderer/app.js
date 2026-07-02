@@ -19,8 +19,8 @@ const DEFAULT_TIME_RANGE = '5m';
 
 /* ─── i18n ─── */
 const I18N = {
-  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...',limits:'阈值线',upperLimit:'上限',lowerLimit:'下限',limitValue:'值',limitColor:'颜色',limitLabel:'标签',limitEnable:'开启'},
-  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...',limits:'Limits',upperLimit:'Upper',lowerLimit:'Lower',limitValue:'Value',limitColor:'Color',limitLabel:'Label',limitEnable:'Enable'}
+  zh:{appTitle:'MQTT 实时图表',connection:'连接',brokerUrl:'Broker 地址',username:'用户',password:'密码',clientId:'客户端 ID',connect:'连接',disconnect:'断开',testConnection:'⚡ 测试连接 & 演示',charts:'图表',spacing:'间距',clearData:'清除数据',startDemo:'▶ 启动演示数据',addChart:'添加图表',editChart:'编辑图表',chartTitle:'图表标题',mqttTopic:'MQTT 主题',chartMode:'模式',autoMode:'自动多线',manualMode:'自定义表达式',expression:'值表达式',expressionHint:'用 data 访问 JSON',fieldsFilter:'字段过滤',fieldsFilterHint:'逗号分隔。留空 = 显示所有数字字段。',maxPoints:'最大点数',timeRange:'时间范围',allTime:'全部',lineColor:'颜色',yAxisLabel:'Y 轴标签',cancel:'取消',save:'保存',export:'导出 CSV',noChartsTitle:'暂无图表',noChartsDesc:'连接 MQTT 后创建图表。',orTest:'或点击 <strong>测试连接 & 演示</strong> 立即体验。',disconnected:'未连接',connecting:'连接中',connected:'已连接',connectionFailed:'连接失败',offline:'离线重连中',fields:'字段',points:'点',msgRate:'消息/秒',current:'当前',min:'最小',max:'最大',avg:'平均',count:'数量',auto:'自动',manual:'手动',paused:'已暂停',lastUpdate:'最后更新',demoRunning:'演示运行中',jsonPreview:'JSON 预览',jsonWaiting:'等待消息...',limits:'阈值线',upperLimit:'上限',lowerLimit:'下限',limitValue:'值',limitColor:'颜色',limitLabel:'标签',limitEnable:'开启',dataPath:'数据路径 (子对象)',dataPathHint:'如果 JSON 是嵌套结构，选择要监控的子对象'},
+  en:{appTitle:'MQTT Charts',connection:'Connection',brokerUrl:'Broker URL',username:'User',password:'Pass',clientId:'Client ID',connect:'Connect',disconnect:'Disconnect',testConnection:'⚡ Test Connection & Demo',charts:'Charts',spacing:'Spacing',clearData:'Clear Data',startDemo:'▶ Start Demo Data',addChart:'Add Chart',editChart:'Edit Chart',chartTitle:'Chart Title',mqttTopic:'MQTT Topic',chartMode:'Mode',autoMode:'Auto Multi-Line',manualMode:'Custom Expression',expression:'Value Expression',expressionHint:'Use data for the JSON',fieldsFilter:'Fields Filter',fieldsFilterHint:'Comma-separated. Empty = show all numeric fields.',maxPoints:'Max Points',timeRange:'Time Range',allTime:'All',lineColor:'Color',yAxisLabel:'Y-axis Label',cancel:'Cancel',save:'Save',export:'Export CSV',noChartsTitle:'No Charts Yet',noChartsDesc:'Connect to MQTT, then create a chart.',orTest:'Or click <strong>Test Connection & Demo</strong> to see it live.',disconnected:'Disconnected',connecting:'Connecting',connected:'Connected',connectionFailed:'Connection failed',offline:'Offline, reconnecting',fields:'Fields',points:'Points',current:'Current',min:'Min',max:'Max',avg:'Avg',count:'Count',auto:'Auto',manual:'Manual',paused:'Paused',lastUpdate:'Last update',demoRunning:'Demo running',jsonPreview:'JSON Preview',jsonWaiting:'Waiting for messages...',limits:'Limits',upperLimit:'Upper',lowerLimit:'Lower',limitValue:'Value',limitColor:'Color',limitLabel:'Label',limitEnable:'Enable',dataPath:'Data Path (sub-object)',dataPathHint:'Select a sub-object if the JSON is nested'}
 };
 let lang='en';
 const t=k=>(I18N[lang]||{})[k]||k;
@@ -71,8 +71,8 @@ let jsonPreviewTimer=null;
 function queueUp(id){if(document.hidden)return;uq.add(id);if(!rafId){rafId=requestAnimationFrame(()=>{uq.forEach(id=>_upd(id));uq.clear();rafId=null;if(S.maxId!==null)updBI();});}}
 
 /* ─── Storage ─── */
-function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
-function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,charts:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS))});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
+function save(){try{const c=S.charts.map(c=>({id:c.id,title:c.title,topic:c.topic,mode:c.mode,expression:c.expression,maxPoints:c.maxPoints,color:c.color,yLabel:c.yLabel,paused:c.paused,fieldsFilter:c.fieldsFilter||[],timeRange:c.timeRange||DEFAULT_TIME_RANGE,h:c.h,limits:c.limits,subKey:c.subKey||''}));localStorage.setItem(STORE_KEY,JSON.stringify({charts:c,nextId:S.nextId,broker:$('broker-url').value,lang,gridGap:S.gridGap,panelH:S.panelH}));}catch{}}
+function load(){try{const r=localStorage.getItem(STORE_KEY);if(!r)return;const c=JSON.parse(r);if(c.lang)lang=c.lang;if(c.broker)$('broker-url').value=c.broker;if(c.gridGap)S.gridGap=c.gridGap;if(c.panelH)S.panelH={...{connection:null,charts:null,json:null},...c.panelH};if(c.charts)c.charts.forEach(ch=>{S.charts.push({...ch,paused:ch.paused||false,fieldsFilter:ch.fieldsFilter||[],timeRange:ch.timeRange||DEFAULT_TIME_RANGE,h:ch.h,limits:ch.limits||JSON.parse(JSON.stringify(DLIMITS)),subKey:ch.subKey||''});S.data[ch.id]={fields:{}};if(ch.id>=S.nextId)S.nextId=ch.id+1;});if(c.nextId)S.nextId=Math.max(S.nextId,c.nextId);}catch{}}
 
 function applyGridGap(){const c=$('charts-container');if(c)c.style.gap=S.gridGap+'px';}
 function setGridGap(v){S.gridGap=Math.max(0,Math.min(40,v));applyGridGap();save();}
@@ -295,6 +295,7 @@ function setupEv(){
   $('bi-export').onclick=exportCSV;
   $('modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
   $('chart-mode').onchange=e=>{const m=e.target.value==='manual';$('expression-group').style.display=m?'':'none';$('color-group').style.display=m?'':'none';$('fields-filter-group').style.display=m?'none':'';};
+  $('chart-topic').oninput=e=>populateSubKeys(e.target.value.trim(),'');
   }catch(e){console.warn('setupEv:',e)}
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.isContentEditable)return;
@@ -375,8 +376,10 @@ function processMsg(ch,payload){
     S.msgRateTimer++;queueUp(ch.id);return;
   }
   let nf=false;
-  if(payload&&typeof payload==='object'&&!Array.isArray(payload)){
-    for(const[k,v]of Object.entries(payload)){
+  let dataObj=payload;
+  if(ch.subKey){dataObj=payload[ch.subKey];if(!dataObj||typeof dataObj!=='object')return;}
+  if(dataObj&&typeof dataObj==='object'&&!Array.isArray(dataObj)){
+    for(const[k,v]of Object.entries(dataObj)){
       const n=+v;if(isNaN(n))continue;
       if(ch.fieldsFilter.length&&!ch.fieldsFilter.includes(k))continue;
       if(!d.fields[k]){d.fields[k]=[];nf=true;}
@@ -434,7 +437,7 @@ function stats(pts){
 function addChart(cfg){
   const id=S.nextId++;
   const ff=(cfg.fieldsFilter||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS))};
+  const ch={id,paused:false,title:cfg.title||`Chart ${id}`,topic:cfg.topic||'',mode:cfg.mode||'auto',expression:cfg.expression||'data.value',maxPoints:+cfg.maxPoints||10000,color:cfg.color||PALETTE[(S.charts.length)%PALETTE.length],yLabel:cfg.yLabel||'',fieldsFilter:ff,timeRange:cfg.timeRange||DEFAULT_TIME_RANGE,h:null,limits:JSON.parse(JSON.stringify(DLIMITS)),subKey:cfg.subKey||''};
   S.charts.push(ch);S.data[id]={fields:{}};
   renderList();renderGrid();
   if(S.connected&&ch.topic)window.mqttAPI.subscribe(ch.topic);
@@ -503,7 +506,7 @@ function renderGrid(){
 function createCard(ch){
   const card=document.createElement('div');
   card.className='card';card.dataset.cid=ch.id;card.draggable=true;
-  card.innerHTML=`<div class="card-head"><span class="card-title" id="ct-${ch.id}" ondblclick="renameChart(${ch.id})" title="Double-click to rename">${esc(ch.title)}</span><span class="card-topic">${esc(ch.topic)}</span><select class="time-sel" onchange="setTimeRange(${ch.id},this.value)" title="Time range">${Object.keys(TIME_RANGES).map(r=>`<option value="${r}"${ch.timeRange===r?' selected':''}>${r}</option>`).join('')}</select><div class="card-acts"><button class="act limit" onclick="event.stopPropagation();toggleLimits(${ch.id})" title="Limits">⫧</button><button class="act pause" onclick="togglePause(${ch.id})" title="Pause">${ch.paused?'▶':'⏸'}</button><button class="act max" onclick="openBI(${ch.id})" title="Maximize">⛶</button><button class="act del" onclick="removeChart(${ch.id})" title="Delete">✕</button></div></div><div class="card-body"><canvas id="cv-${ch.id}"></canvas><div class="limit-popover" id="lp-${ch.id}"></div></div><div class="card-legend" id="lg-${ch.id}"></div><div class="card-fields" id="cf-${ch.id}"></div><div class="card-resize"></div>`;
+  card.innerHTML=`<div class="card-head"><span class="card-title" id="ct-${ch.id}" ondblclick="renameChart(${ch.id})" title="Double-click to rename">${esc(ch.title)}</span><span class="card-topic">${esc(ch.topic)}${ch.subKey?' / '+esc(ch.subKey):''}</span><select class="time-sel" onchange="setTimeRange(${ch.id},this.value)" title="Time range">${Object.keys(TIME_RANGES).map(r=>`<option value="${r}"${ch.timeRange===r?' selected':''}>${r}</option>`).join('')}</select><div class="card-acts"><button class="act limit" onclick="event.stopPropagation();toggleLimits(${ch.id})" title="Limits">⫧</button><button class="act pause" onclick="togglePause(${ch.id})" title="Pause">${ch.paused?'▶':'⏸'}</button><button class="act max" onclick="openBI(${ch.id})" title="Maximize">⛶</button><button class="act del" onclick="removeChart(${ch.id})" title="Delete">✕</button></div></div><div class="card-body"><canvas id="cv-${ch.id}"></canvas><div class="limit-popover" id="lp-${ch.id}"></div></div><div class="card-legend" id="lg-${ch.id}"></div><div class="card-fields" id="cf-${ch.id}"></div><div class="card-resize"></div>`;
   // Click to select chart (not when clicking buttons/selects/legend)
   card.addEventListener('click',e=>{if(e.target.closest('button')||e.target.closest('select')||e.target.closest('.legend-item')||e.target.closest('.ft-chip')||e.target.isContentEditable)return;selectChart(ch.id);});
   card.addEventListener('dragstart',e=>{if(e.target.closest('.card-resize')||e.target.isContentEditable){e.preventDefault();return;}dragSrc=ch.id;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';const g=card.cloneNode(true);g.className='card drag-ghost';g.style.width=card.offsetWidth+'px';document.body.appendChild(g);e.dataTransfer.setDragImage(g,0,0);setTimeout(()=>document.body.removeChild(g),0);});
@@ -614,11 +617,9 @@ function toggleLine(id,dsIdx){
 function toggleLimits(id){
   const ch=S.charts.find(c=>c.id===id);if(!ch)return;
   const pop=$(`lp-${id}`);if(!pop)return;
-  // Toggle popover visibility
-  if(ch.limits._open){ch.limits._open=false;pop.style.display='none';return;}
-  ch.limits._open=true;
+  if(pop.style.display==='block'){pop.style.display='none';return;}
   renderLimitPopover(id);
-  pop.style.display='';
+  pop.style.display='block';
 }
 
 function renderLimitPopover(id){
@@ -626,8 +627,8 @@ function renderLimitPopover(id){
   const pop=$(`lp-${id}`);if(!pop)return;
   const L=ch.limits;
   pop.innerHTML=`<div class="lp-head">${t('limits')} <button class="lp-close" onclick="toggleLimits(${id})">✕</button></div>
-<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.upper.on?'checked':''} onchange="setLimit(${id},'upper','on',this.checked)"> ${t('upperLimit')}</label><input type="number" class="lp-val" value="${L.upper.value}" onchange="setLimit(${id},'upper','value',+this.value)"><input type="color" class="lp-col" value="${L.upper.color}" onchange="setLimit(${id},'upper','color',this.value)"><input class="lp-lbl" value="${esc(L.upper.label)}" placeholder="${t('limitLabel')}" onchange="setLimit('${id}','upper','label',this.value)"></div>
-<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.lower.on?'checked':''} onchange="setLimit(${id},'lower','on',this.checked)"> ${t('lowerLimit')}</label><input type="number" class="lp-val" value="${L.lower.value}" onchange="setLimit(${id},'lower','value',+this.value)"><input type="color" class="lp-col" value="${L.lower.color}" onchange="setLimit(${id},'lower','color',this.value)"><input class="lp-lbl" value="${esc(L.lower.label)}" placeholder="${t('limitLabel')}" onchange="setLimit('${id}','lower','label',this.value)"></div>`;
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.upper.on?'checked':''} onchange="setLimit(${id},'upper','on',this.checked)"> ${t('upperLimit')}</label><input type="number" class="lp-val" value="${L.upper.value}" onchange="setLimit(${id},'upper','value',+this.value)"><input type="color" class="lp-col" value="${L.upper.color}" onchange="setLimit(${id},'upper','color',this.value)"><input class="lp-lbl" value="${esc(L.upper.label)}" placeholder="${t('limitLabel')}" onchange="setLimit(${id},'upper','label',this.value)"></div>
+<div class="lp-row"><label class="lp-toggle"><input type="checkbox" ${L.lower.on?'checked':''} onchange="setLimit(${id},'lower','on',this.checked)"> ${t('lowerLimit')}</label><input type="number" class="lp-val" value="${L.lower.value}" onchange="setLimit(${id},'lower','value',+this.value)"><input type="color" class="lp-col" value="${L.lower.color}" onchange="setLimit(${id},'lower','color',this.value)"><input class="lp-lbl" value="${esc(L.lower.label)}" placeholder="${t('limitLabel')}" onchange="setLimit(${id},'lower','label',this.value)"></div>`;
 }
 
 function setLimit(id,which,prop,val){
@@ -644,7 +645,8 @@ const limitPlugin={id:'limits',afterDraw:function(chart){
   const cid=+(chart.canvas.id||'').replace('cv-','');
   if(!cid)return;
   const ch=S.charts.find(c=>c.id===cid);
-  if(!ch||!ch.limits||!ch.limits.on)return;
+  if(!ch||!ch.limits)return;
+  if(!ch.limits.upper.on&&!ch.limits.lower.on)return;
   const{ctx,chartArea:{top,bottom,left,right},scales}=chart;
   if(!scales.y)return;
   const drawLine=({value,color,label,on})=>{
@@ -694,7 +696,13 @@ function getAvailableFields(ch){
   const data=S.data[ch.id];
   const collected=data?Object.keys(data.fields):[];
   const last=S.lastPayloadByTopic[ch.topic];
-  const jsonFields=last&&typeof last==='object'&&!Array.isArray(last)?Object.entries(last).filter(([,v])=>!isNaN(+v)).map(([k])=>k):[];
+  let jsonFields=[];
+  if(last&&typeof last==='object'&&!Array.isArray(last)){
+    const obj=ch.subKey?last[ch.subKey]:last;
+    if(obj&&typeof obj==='object'&&!Array.isArray(obj)){
+      jsonFields=Object.entries(obj).filter(([,v])=>!isNaN(+v)).map(([k])=>k);
+    }
+  }
   return [...new Set([...collected,...jsonFields])];
 }
 
@@ -830,16 +838,31 @@ function openModal(editId){
   S.editId=editId||null;
   $('modal-title').textContent=editId?t('editChart'):t('addChart');
   const isM=editId?(S.charts.find(c=>c.id===editId)?.mode==='manual'):false;
-  if(editId){const c=S.charts.find(c=>c.id===editId);if(c){$('chart-title').value=c.title;$('chart-topic').value=c.topic;$('chart-mode').value=c.mode;$('chart-expression').value=c.expression;$('chart-maxpoints').value=c.maxPoints;$('chart-color').value=c.color;$('chart-ylabel').value=c.yLabel||'';$('chart-fields-filter').value=(c.fieldsFilter||[]).join(', ');$('chart-timerange').value=c.timeRange||DEFAULT_TIME_RANGE;}}
-  else{$('chart-title').value='';$('chart-topic').value='';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-fields-filter').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;}
+  if(editId){const c=S.charts.find(c=>c.id===editId);if(c){$('chart-title').value=c.title;$('chart-topic').value=c.topic;$('chart-mode').value=c.mode;$('chart-expression').value=c.expression;$('chart-maxpoints').value=c.maxPoints;$('chart-color').value=c.color;$('chart-ylabel').value=c.yLabel||'';$('chart-fields-filter').value=(c.fieldsFilter||[]).join(', ');$('chart-timerange').value=c.timeRange||DEFAULT_TIME_RANGE;populateSubKeys(c.topic,c.subKey||'');}}
+  else{$('chart-title').value='';$('chart-topic').value='';$('chart-mode').value='auto';$('chart-expression').value='data.value';$('chart-maxpoints').value='10000';$('chart-color').value=PALETTE[S.charts.length%PALETTE.length];$('chart-ylabel').value='';$('chart-fields-filter').value='';$('chart-timerange').value=DEFAULT_TIME_RANGE;populateSubKeys('','');}
   $('expression-group').style.display=isM?'':'none';$('color-group').style.display=isM?'':'none';$('fields-filter-group').style.display=isM?'none':'';
   $('modal-overlay').classList.remove('hidden');setTimeout(()=>$('chart-title').focus(),80);
 }
+function populateSubKeys(topic,selected){
+  const sel=$('chart-subkey');if(!sel)return;
+  let html='<option value="">— Top Level —</option>';
+  if(topic){
+    const last=S.lastPayloadByTopic[topic];
+    if(last&&typeof last==='object'&&!Array.isArray(last)){
+      for(const[k,v]of Object.entries(last)){
+        if(v&&typeof v==='object'&&!Array.isArray(v)){
+          html+=`<option value="${esc(k)}"${k===selected?' selected':''}>${esc(k)}</option>`;
+        }
+      }
+    }
+  }
+  sel.innerHTML=html;
+}
 function closeModal(){$('modal-overlay').classList.add('hidden');S.editId=null;}
 function saveChart(){
-  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:$('chart-fields-filter').value.trim(),timeRange:$('chart-timerange').value};
+  const cfg={title:$('chart-title').value.trim()||'Untitled',topic:$('chart-topic').value.trim(),mode:$('chart-mode').value,expression:$('chart-expression').value.trim()||'data.value',maxPoints:+$('chart-maxpoints').value||10000,color:$('chart-color').value,yLabel:$('chart-ylabel').value.trim(),fieldsFilter:$('chart-fields-filter').value.trim(),timeRange:$('chart-timerange').value,subKey:$('chart-subkey').value};
   if(!cfg.topic){toast(t('mqttTopic')+' required','error');return;}
-  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}renderList();renderGrid();}}
+  if(S.editId){const i=S.charts.findIndex(c=>c.id===S.editId);if(i!==-1){const oldTopic=S.charts[i].topic,oldSub=S.charts[i].subKey;Object.assign(S.charts[i],cfg);if(S.inst[S.editId]){S.inst[S.editId].destroy();delete S.inst[S.editId];}if(oldTopic!==cfg.topic||oldSub!==cfg.subKey){recycleData(S.editId);S.data[S.editId]={fields:{}};}renderList();renderGrid();}}
   else addChart(cfg);
   closeModal();save();
 }
