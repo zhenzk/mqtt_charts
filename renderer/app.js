@@ -213,43 +213,88 @@ function renderJsonPreview(){
   if(!topic||!S.lastPayloadByTopic[topic]){topic=topics.length?topics[0]:null;S.selectedJsonTopic=topic;}
   let tabs='';
   if(topics.length>1){
-    tabs=`<div class="json-tabs">${topics.map(t=>`<span class="json-tab${t===topic?' active':''}" onclick="selectJsonTopic('${escJs(t)}')">${esc(t)}</span>`).join('')}</div>`;
+    tabs=`<div class="json-tabs">${topics.map(tp=>`<span class="json-tab${tp===topic?' active':''}" onclick="selectJsonTopic('${escJs(tp)}')">${esc(tp)}</span>`).join('')}</div>`;
   }
   if(!topic||!S.lastPayloadByTopic[topic]){
     el.innerHTML=tabs+`<div class="json-empty" data-i18n="jsonWaiting">Waiting for messages...</div>`;
     return;
   }
   const payload=S.lastPayloadByTopic[topic];
-  const json=JSON.stringify(payload,null,2);
-  const highlighted=json
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"([^"]+)":/g,'<span class="json-key">"$1"</span>:')
-    .replace(/: (-?\d+\.?\d*)/g,': <span class="json-num">$1</span>')
-    .replace(/: "([^"]*)"/g,': <span class="json-str">"$1"</span>')
-    .replace(/: (true|false)/g,': <span class="json-bool">$1</span>')
-    .replace(/: null/g,': <span class="json-null">null</span>');
-  let chips='';
-  if(payload&&typeof payload==='object'&&!Array.isArray(payload)){
-    const fields=Object.entries(payload).filter(([,v])=>!isNaN(+v)).map(([k])=>k);
-    if(fields.length){
-      if(S.selectedId!==null){
-        const selCh=S.charts.find(c=>c.id===S.selectedId);
-        const selData=S.data[S.selectedId];
-        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'→ 添加到已选图表':'→ Add to selected chart'}: </span>${fields.map(f=>{
-          const hasData=!!selData?.fields[f];
-          const onChart=selCh&&selCh.topic===topic;
-          if(!onChart)return`<span class="json-field-chip ft-no-topic" onclick="quickAddField('${escJs(topic)}','${escJs(f)}')" title="Topic mismatch - creates new chart"><span class="plus">+</span>${esc(f)}</span>`;
-          const hidden=hasData&&S.inst[S.selectedId]?S.inst[S.selectedId].data.datasets[Object.keys(selData.fields).indexOf(f)]?.hidden:false;
-          const active=hasData&&!hidden;
-          return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${escJs(f)}')" title="${active?'Hide':'Show'} on chart">${active?'●':hasData?'⊘':'+'} ${esc(f)}</span>`;
-        }).join('')}</div>`;
-      }else{
-        chips=`<div class="json-fields"><span class="json-hint">${lang==='zh'?'点击 + 创建单字段图表，或先点击图表选中':'Click + for new chart, or click a chart first'}: </span>${fields.map(f=>`<span class="json-field-chip" onclick="quickAddField('${escJs(topic)}','${escJs(f)}')" title="Add chart for this topic"><span class="plus">+</span>${esc(f)}</span>`).join('')}</div>`;
-      }
+  // Collect all numeric fields recursively (with dotted path)
+  const numFields=[];
+  function collectNum(obj,prefix){
+    if(!obj||typeof obj!=='object'||Array.isArray(obj))return;
+    for(const[k,v]of Object.entries(obj)){
+      const path=prefix?prefix+'.'+k:k;
+      if(v&&typeof v==='object'&&!Array.isArray(v))collectNum(v,path);
+      else if(!isNaN(+v)&&typeof v!=='object')numFields.push({path,val:v});
     }
   }
-  el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount}</div>${chips}<pre style="margin:6px 0 0;white-space:pre-wrap">${highlighted}</pre>`;
+  collectNum(payload,'');
+  // Build collapsible JSON tree
+  function buildTree(obj,depth){
+    if(!obj||typeof obj!=='object'||Array.isArray(obj))return '';
+    const pad=depth*12;
+    let html='<div class="json-block" style="margin-left:'+pad+'px">';
+    for(const[k,v]of Object.entries(obj)){
+      const isObj=v&&typeof v==='object'&&!Array.isArray(v);
+      if(isObj){
+        html+=`<div class="json-line"><span class="json-toggle" onclick="this.parentElement.nextElementSibling.classList.toggle('collapsed')">▾</span><span class="json-key">"${esc(k)}"</span>: <span class="json-punc">{</span> <span class="json-count">${Object.keys(v).length}</span></div>`;
+        html+=`<div class="json-children">${buildTree(v,depth+1)}</div>`;
+        html+=`<div class="json-line" style="margin-left:${pad}px"><span class="json-punc">}</span></div>`;
+      }else{
+        const cls=typeof v==='string'?'json-str':typeof v==='boolean'?'json-bool':v===null?'json-null':'json-num';
+        const valStr=typeof v==='string'?`"${esc(v)}"`:v===null?'null':v;
+        html+=`<div class="json-line"><span class="json-key">"${esc(k)}"</span>: <span class="${cls}">${valStr}</span></div>`;
+      }
+    }
+    html+='</div>';
+    return html;
+  }
+  const treeHtml=buildTree(payload,0);
+  // Build field chips: show fields matching selected chart's subKey, or all if no chart selected
+  let chips='';
+  if(numFields.length){
+    const selCh=S.selectedId!==null?S.charts.find(c=>c.id===S.selectedId):null;
+    const selData=S.selectedId!==null?S.data[S.selectedId]:null;
+    // Filter fields: if selected chart has subKey, show only that subKey's fields
+    let displayFields=numFields;
+    let chipLabel='';
+    if(selCh&&selCh.topic===topic&&selCh.subKey){
+      displayFields=numFields.filter(f=>f.path.startsWith(selCh.subKey+'.'));
+      chipLabel=lang==='zh'?`→ ${selCh.subKey}: `:`→ ${selCh.subKey}: `;
+    }else if(selCh&&selCh.topic===topic&&!selCh.subKey){
+      // Top-level only
+      displayFields=numFields.filter(f=>!f.path.includes('.'));
+      chipLabel=lang==='zh'?'→ 添加到已选图表: ':'→ Add to selected: ';
+    }else if(selCh&&selCh.topic!==topic){
+      chipLabel=lang==='zh'?'→ topic 不匹配，点 + 新建: ':'→ Topic mismatch, + for new: ';
+    }else{
+      chipLabel=lang==='zh'?'点击 + 新建图表，或先点选图表: ':'Click + for new, or select a chart: ';
+    }
+    const fieldsToShow=displayFields.slice(0,60);
+    chips=`<div class="json-fields"><span class="json-hint">${chipLabel}</span>${fieldsFieldsChips(fieldsToShow,selCh,selData,topic)}</div>`;
+    if(numFields.length>60&&selCh&&selCh.subKey){
+      const totalInSub=numFields.filter(f=>f.path.startsWith(selCh.subKey+'.')).length;
+      if(totalInSub>60)chips+=`<div class="json-hint" style="margin-top:3px">${lang==='zh'?'还有 ':''}${totalInSub-60} ${lang==='zh'?'个字段未显示':'more fields not shown'}</div>`;
+    }
+  }
+  el.innerHTML=`${tabs}<div class="json-topic">${esc(topic)} · #${S.jsonCount} · ${numFields.length} ${lang==='zh'?'个数值字段':'num fields'}</div>${chips}<div class="json-tree">${treeHtml}</div>`;
   }catch(e){console.warn('jsonPrev:',e)}
+}
+
+function fieldsFieldsChips(fields,selCh,selData,topic){
+  return fields.map(f=>{
+    const shortName=f.path.split('.').pop();
+    if(selCh&&selCh.topic===topic){
+      const fieldName=selCh.subKey?f.path.split(selCh.subKey+'.')[1]||f.path:f.path;
+      const hasData=!!selData?.fields[fieldName];
+      const hidden=hasData&&S.inst[S.selectedId]?S.inst[S.selectedId].data.datasets[Object.keys(selData.fields).indexOf(fieldName)]?.hidden:false;
+      const active=hasData&&!hidden;
+      return`<span class="json-field-chip ${active?'jfc-active':hasData?'jfc-hidden':''}" onclick="toggleField(${S.selectedId},'${escJs(fieldName)}')" title="${f.path} = ${f.val}">${active?'●':hasData?'⊘':'+'} ${esc(shortName)}</span>`;
+    }
+    return`<span class="json-field-chip" onclick="quickAddField('${escJs(topic)}','${escJs(f.path)}','${escJs(selCh?selCh.subKey:'')}')" title="${f.path} = ${f.val}"><span class="plus">+</span>${esc(shortName)}</span>`;
+  }).join('');
 }
 
 function onStatus(status,msg){
@@ -880,7 +925,15 @@ function togglePanel(el){el.classList.toggle('collapsed');}
 window.removeChart=removeChart;window.togglePause=togglePause;window.openBI=openBI;window.togglePanel=togglePanel;window.toggleLine=toggleLine;window.quickAddField=quickAddField;window.setTimeRange=setTimeRange;window.toggleField=toggleField;window.selectChart=selectChart;window.renameChart=renameChart;window.selectJsonTopic=selectJsonTopic;window.toggleLimits=toggleLimits;window.setLimit=setLimit;
 
 /* Quick-add chart for a single field from JSON preview */
-function quickAddField(topic,field){
+function quickAddField(topic,fieldPath,suggestedSubKey){
   if(!S.connected){toast(lang==='zh'?'请先连接 MQTT':'Connect first','warn');return;}
-  addChart({title:field,topic,mode:'auto',fieldsFilter:field});
+  // If path has a dot, split into subKey + fieldName
+  let subKey='',fieldName=fieldPath;
+  const dotIdx=fieldPath.indexOf('.');
+  if(dotIdx>0){
+    subKey=fieldPath.substring(0,dotIdx);
+    fieldName=fieldPath.substring(dotIdx+1);
+  }
+  if(suggestedSubKey&&!subKey)subKey=suggestedSubKey;
+  addChart({title:fieldName,topic,mode:'auto',fieldsFilter:fieldName,subKey});
 }
